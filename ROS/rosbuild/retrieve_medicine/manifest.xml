@@ -1,0 +1,19 @@
+<package>
+	<description brief="retrieve_medicine">
+
+		retrieve_medicine
+
+	</description>
+	<author>David Kent</author>
+	<license>BSD</license>
+	<review status="unreviewed" notes=""/>
+	<url></url>
+
+	<depend package="roslib"/>
+	<depend package="roscpp"/>
+	<depend package="actionlib"/>
+	<depend package="actionlib_msgs"/>
+	
+</package>
+
+
