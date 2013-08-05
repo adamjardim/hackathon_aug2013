@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(interactive_world)
+project(interactive_world_hackathon)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -55,7 +55,7 @@ add_dependencies(grasp_verification ${PROJECT_NAME}_gencpp)
 ## Install ##
 #############
 
-install(PROGRAMS scripts/interactive_world_server scripts/interactive_world_server
+install(PROGRAMS scripts/interactive_world_hackathon_server.py scripts/fake_object_markers.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

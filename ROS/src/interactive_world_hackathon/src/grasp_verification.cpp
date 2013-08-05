@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <pr2_controllers_msgs/Pr2GripperCommandAction.h>
 #include <pr2_msgs/PressureState.h>
-#include <interactive_world/GraspCheck.h>
+#include <interactive_world_hackathon/GraspCheck.h>
 #include <std_msgs/Bool.h>
 #include <tf/transform_listener.h>
 
@@ -20,7 +20,7 @@ public:
     l_gripper_pressure_sub = n.subscribe("/pressure/l_gripper_motor", 1, &grasp_verification::l_pressure_cb, this);
     r_gripper_pressure_sub = n.subscribe("/pressure/r_gripper_motor", 1, &grasp_verification::r_pressure_cb, this);
 
-    grasp_verification_server = n.advertiseService("interactive_world/grasp_check", &grasp_verification::grasp_check,
+    grasp_verification_server = n.advertiseService("interactive_world_hackathon/grasp_check", &grasp_verification::grasp_check,
                                                    this);
 
     r_grasp_publisher = n.advertise < std_msgs::Bool > ("/r_grasp_status", 1);
@@ -101,7 +101,7 @@ public:
     l_avg = avg_pres;
   }
 
-  bool grasp_check(interactive_world::GraspCheck::Request &req, interactive_world::GraspCheck::Response &res)
+  bool grasp_check(interactive_world_hackathon::GraspCheck::Request &req, interactive_world_hackathon::GraspCheck::Response &res)
   {
     //calculate gripper position using tfs
     tf::StampedTransform transform;

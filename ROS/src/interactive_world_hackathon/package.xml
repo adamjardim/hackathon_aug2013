@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>interactive_world</name>
+  <name>interactive_world_hackathon</name>
   <version>0.0.1</version>
   <description>The interactive marker server for the interactive world.</description>
 

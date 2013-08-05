@@ -12,7 +12,7 @@ from pr2_object_manipulation_msgs.msg import IMGUIAction, IMGUIOptions, IMGUIGoa
 from household_objects_database_msgs.msg import DatabaseModelPose
 from object_info import ObjectInfo
 from template import Template
-from interactive_world.srv import GraspCheck
+from interactive_world_hackathon.srv import GraspCheck
 from visualization_msgs.msg import Marker, InteractiveMarker, InteractiveMarkerControl, InteractiveMarkerFeedback
 from object_manipulator.convert_functions import change_pose_stamped_frame, pose_to_mat, mat_to_pose, stamp_pose, create_vector3_stamped
 import tf
@@ -26,7 +26,7 @@ import copy
 class InteractiveWorldServer():
     def __init__(self):
         # create the IM server
-        self.server = InteractiveMarkerServer('interactive_world')
+        self.server = InteractiveMarkerServer('interactive_world_hackathon')
         # create a simple TF listener
         self.tf_listener = tf.TransformListener()
         # create the IMGUI action client
@@ -39,7 +39,7 @@ class InteractiveWorldServer():
         rospy.Subscriber('/object_manipulator/object_manipulator_pickup/result', PickupActionResult, self.store_grasp)
         self.last_grasp = None
         # gets the regions
-        rospy.Subscriber('/interactive_world/region_request', Polygon, self.store_region)
+        rospy.Subscriber('/interactive_world_hackathon/region_request', Polygon, self.store_region)
         self.last_region = None
         # listen for graspable objects
         rospy.Subscriber('/interactive_object_recognition_result', GraspableObjectList, self.proc_grasp_list)
@@ -47,8 +47,8 @@ class InteractiveWorldServer():
         rospy.Service('~change_mode', Empty, self.change_mode)
         self.edit_mode = False
         # grasp checker
-        rospy.wait_for_service('/interactive_world/grasp_check')
-        self.grasp_check = rospy.ServiceProxy('/interactive_world/grasp_check', GraspCheck)
+        rospy.wait_for_service('/interactive_world_hackathon/grasp_check')
+        self.grasp_check = rospy.ServiceProxy('/interactive_world_hackathon/grasp_check', GraspCheck)
         # save and load
         rospy.Service('~save', Empty, self.save)
         self.template_count = rospy.Publisher('~template_count', Int32)
