@@ -1,11 +1,19 @@
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
 
-double height = 0.5;
+double height = 0.75;
 
 double width = 1.0;
-double depth = 1.0;
+double depth = 1.5;
 double offset = 0.5;
+
+double legradius = 0.05;
+double colorr = 0.957;
+double colorg = 0.482;
+double colorb = 0.063;
+double colora = 0.66;
+
+
 
 visualization_msgs::Marker create_leg(int ln)
 {
@@ -14,26 +22,26 @@ visualization_msgs::Marker create_leg(int ln)
   marker.header.stamp = ros::Time::now();
   marker.ns = "table_markers";
   marker.id = ln;
-  marker.type = visualization_msgs::Marker::CUBE;
+  marker.type = visualization_msgs::Marker::CYLINDER;
   marker.action = visualization_msgs::Marker::ADD;
 
   switch(ln)
   {
     case 0:
-      marker.pose.position.x = offset + depth;
-      marker.pose.position.y = -width/2;
+      marker.pose.position.x = offset + depth - legradius/2;
+      marker.pose.position.y = -width/2 + legradius/2;
       break;
     case 1:
-      marker.pose.position.x = offset + depth;
-      marker.pose.position.y = width/2;
+      marker.pose.position.x = offset + depth - legradius/2;
+      marker.pose.position.y = width/2 - legradius/2;
       break;
     case 2:
-      marker.pose.position.x = offset;
-      marker.pose.position.y = -width/2;
+      marker.pose.position.x = offset + legradius/2;
+      marker.pose.position.y = -width/2 + legradius/2;
       break;
     case 3:
-      marker.pose.position.x = offset;
-      marker.pose.position.y = width/2;
+      marker.pose.position.x = offset + legradius/2;
+      marker.pose.position.y = width/2 - legradius/2;
       break;
   }
 
@@ -43,14 +51,14 @@ visualization_msgs::Marker create_leg(int ln)
   marker.pose.orientation.z = 0.0;
   marker.pose.orientation.w = 1.0;
 
-  marker.scale.x = 0.05;
-  marker.scale.y = 0.05;
+  marker.scale.x = legradius;
+  marker.scale.y = legradius;
   marker.scale.z = height;
 
-  marker.color.r = 0.0f;
-  marker.color.g = 1.0f;
-  marker.color.b = 0.0f;
-  marker.color.a = 1.0;
+  marker.color.r = colorr;
+  marker.color.g = colorg;
+  marker.color.b = colorb;
+  marker.color.a = colora;
 
   marker.lifetime = ros::Duration();
 
@@ -73,7 +81,7 @@ int main( int argc, char** argv )
     marker.id = 10;
     marker.type = visualization_msgs::Marker::CUBE;
     marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.position.x = offset*2;
+    marker.pose.position.x = offset+depth/2;
     marker.pose.position.y = 0;
     marker.pose.position.z = height;
     marker.pose.orientation.x = 0.0;
@@ -83,12 +91,12 @@ int main( int argc, char** argv )
 
     marker.scale.x = depth;
     marker.scale.y = width;
-    marker.scale.z = 0.01;
+    marker.scale.z = 0.025;
 
-    marker.color.r = 0.0f;
-    marker.color.g = 1.0f;
-    marker.color.b = 0.0f;
-    marker.color.a = 1.0;
+  marker.color.r = colorr;
+  marker.color.g = colorg;
+  marker.color.b = colorb;
+  marker.color.a = colora;
 
     marker.lifetime = ros::Duration();
 
@@ -99,7 +107,5 @@ int main( int argc, char** argv )
     {
       marker_pub.publish(create_leg(i));
     }
-
-    r.sleep();
   }
 }
