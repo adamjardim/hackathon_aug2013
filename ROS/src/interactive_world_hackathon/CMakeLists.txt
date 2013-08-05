@@ -45,11 +45,14 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(grasp_verification src/grasp_verification.cpp)
+add_executable(create_table src/create_table.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(grasp_verification ${catkin_LIBRARIES})
+target_link_libraries(create_table ${catkin_LIBRARIES})
 
 add_dependencies(grasp_verification ${PROJECT_NAME}_gencpp)
+add_dependencies(create_table ${PROJECT_NAME}_gencpp)
 
 #############
 ## Install ##
@@ -60,5 +63,9 @@ install(PROGRAMS scripts/interactive_world_hackathon_server.py scripts/fake_obje
 )
 
 install(TARGETS grasp_verification
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS create_table
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
