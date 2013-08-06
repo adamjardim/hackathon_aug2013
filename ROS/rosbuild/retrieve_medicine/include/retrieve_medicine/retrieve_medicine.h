@@ -14,11 +14,14 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Odometry.h>
+#include <position_server/GetPosition.h>
 
 class retrieveMedicine
 {
 public: 
     ros::NodeHandle n;    
+
+    ros::ServiceClient position_client;
 
 	//Action clients
 	actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> acMoveBase;
