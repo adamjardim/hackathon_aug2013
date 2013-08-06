@@ -9,7 +9,9 @@ import copy
 import pickle
 import actionlib
 from interactive_world_hackathon.msg import LoadAction, LoadFeedback, LoadResult
-from pr2_interactive_object_detection import UserCommandAction, UserCommandGoal
+import roslib
+roslib.load_manifest('pr2_interactive_object_detection')
+from pr2_interactive_object_detection.msg import UserCommandAction, UserCommandGoal
 from manipulation_msgs.msg import GraspableObject, GraspableObjectList
 
 TABLE_HEIGHT = 0.75
