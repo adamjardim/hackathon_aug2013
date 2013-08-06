@@ -44,6 +44,8 @@ actionName(name)
 	ROS_INFO("Finished waiting for torso action server.");
 
     as.start();
+
+    position_client = n.serviceClient<position_server::GetPosition>("position_server/get_position");
 }
 
 
@@ -51,9 +53,50 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 {
 	ROS_INFO("Goal task name: %s", goal->taskName.c_str());
 	
-	asResult.result_msg = "Finished";
-	asResult.success = true;
-	as.setSucceeded(asResult);
+	position_server::GetPosition srv;
+        srv.request.positionName = goal->taskName;
+
+	pr2_common_action_msgs::TuckArmsGoal armTuckGoal;
+	armTuckGoal.tuck_left = true;
+	armTuckGoal.tuck_right = true;
+	acTuckArms.sendGoal(armTuckGoal);
+	acTuckArms.waitForResult(ros::Duration(15));
+
+	geometry_msgs::PoseStamped target;
+	target.header.frame_id = "/map";
+	target.pose.position.x = srv.response.position.pose.x;
+	target.pose.position.y = srv.response.position.pose.y;
+	target.pose.position.z = 0.0;
+	target.pose.orientation.x = 0.0;
+	target.pose.orientation.y = 0.0;
+	target.pose.orientation.z = sin(srv.response.position.pose.theta/2.0);
+	target.pose.orientation.w = cos(srv.response.position.pose.theta/2.0);
+
+	move_base_msgs::MoveBaseGoal moveGoal;
+	moveGoal.target_pose = target;
+	acMoveBase.sendGoal(moveGoal);
+
+	acMoveBase.waitForResult(ros::Duration(30));
+
+	if (acMoveBase.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+	{
+		pr2_common_action_msgs::TuckArmsGoal armUntuckGoal;
+		armUntuckGoal.tuck_left = false;
+		armUntuckGoal.tuck_right = false;
+		acTuckArms.sendGoal(armUntuckGoal);
+		acTuckArms.waitForResult(ros::Duration(30));
+
+		ROS_INFO("%s: Succeeded complete", actionName.c_str());
+		asResult.result_msg = "Finished";
+		asResult.success = true;
+		as.setSucceeded(asResult);
+	}
+	else
+	{
+		ROS_INFO("%s: Failed to complete action", actionName.c_str());
+		as.setPreempted();
+	}
+	
 }
 
 int main(int argc, char **argv)
