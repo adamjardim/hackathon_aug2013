@@ -7,6 +7,8 @@ from visualization_msgs.msg import Marker, InteractiveMarker, InteractiveMarkerC
 from interactive_world_hackathon.srv import SaveTemplate, SaveTemplateResponse
 import copy
 import pickle
+import actionlib
+from interactive_world_hackathon.msg import LoadAction, LoadFeedback
 
 TABLE_HEIGHT = 0.75
 OFFSET = 0.381
@@ -21,6 +23,8 @@ class FakeMarkerServer():
     def __init__(self):
         # create the save service
         rospy.Service('~save_template', SaveTemplate, self.save)
+        self.load_server = actionlib.SimpleActionServer('load_template', LoadAction, execute_cb=self.load, auto_start=False)
+        self.load_server.start()
         # create the IM server
         self.server = InteractiveMarkerServer('~fake_marker_server')
         # used to get model meshes
@@ -132,6 +136,13 @@ class FakeMarkerServer():
             return SaveTemplateResponse(True)
         else:
             return SaveTemplateResponse(False)
+
+    def publish_feedback(self, msg):
+        self.load_server.publish_feedback(LoadFeedback(msg))
+
+    def load(self, goal):
+        name = goal.name
+        self.publish_feedback('Loading template ' + name)
 
 if __name__ == '__main__':    
     rospy.init_node('fake_object_markers')
