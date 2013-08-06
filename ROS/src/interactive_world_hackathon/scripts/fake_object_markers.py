@@ -17,7 +17,7 @@ class FakeMarkerServer():
         self.objects.append(18786)
         self.objects.append(18722)
         pose = Pose()
-        pose.position.z = 1.0
+        pose.position.z = .7366
         pose.position.x = 1.5
         pose.position.y = -0.25
         for obj_id in self.objects:
