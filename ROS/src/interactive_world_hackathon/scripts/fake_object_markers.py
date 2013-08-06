@@ -8,7 +8,7 @@ from interactive_world_hackathon.srv import SaveTemplate, SaveTemplateResponse
 import copy
 import pickle
 import actionlib
-from interactive_world_hackathon.msg import LoadAction, LoadFeedback
+from interactive_world_hackathon.msg import LoadAction, LoadFeedback, LoadResult
 
 TABLE_HEIGHT = 0.75
 OFFSET = 0.381
@@ -140,9 +140,19 @@ class FakeMarkerServer():
     def publish_feedback(self, msg):
         self.load_server.publish_feedback(LoadFeedback(msg))
 
+    def publish_result(self, msg):
+        self.load_server.set_succeeded(LoadResult(msg))
+
     def load(self, goal):
         name = goal.name
         self.publish_feedback('Loading template ' + name)
+        if name not in self.templates.keys():
+            self.publish_result(name + ' template does not exist')
+            return
+        template = self.templates[name]
+        self.publish_feedback('Loaded template ' + name)
+        self.publish_feedback('Driving robot to counter')
+        #TODO Drive the robot
 
 if __name__ == '__main__':    
     rospy.init_node('fake_object_markers')
