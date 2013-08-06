@@ -201,14 +201,15 @@ class FakeMarkerServer():
         template = self.templates[name]
         self.publish_feedback('Loaded template ' + name)
         self.look_for_objects()
+        pickup = None
         # look for any objects we need
         for template_im in template:
             for rec_obj in self.recognition:
-                if template_im.marker_name is self.create_name(rec_obj.potential_models[0].model_id):
+                if template_im.name == self.create_name(rec_obj.potential_models[0].model_id):
                     # pick it up
                     pickup = self.pickup(rec_obj)
         if pickup is None:
-            pickup = 'damnit, it didnt work.' 
+            pickup = 'damnit, it didnt work.'
         self.publish_result(pickup)
         
     def reset_collision_map(self):
