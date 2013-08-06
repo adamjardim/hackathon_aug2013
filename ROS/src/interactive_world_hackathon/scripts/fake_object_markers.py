@@ -9,6 +9,8 @@ import copy
 import pickle
 import actionlib
 from interactive_world_hackathon.msg import LoadAction, LoadFeedback, LoadResult
+from pr2_interactive_object_detection import UserCommandAction, UserCommandGoal
+from manipulation_msgs.msg import GraspableObject, GraspableObjectList
 
 TABLE_HEIGHT = 0.75
 OFFSET = 0.381
@@ -21,6 +23,12 @@ SAVE_FILE = '/tmp/templates.r0b0t'
 
 class FakeMarkerServer():
     def __init__(self):
+        # Segmentation client
+        self.segclient = actionlib.SimpleActionClient('/object_detection_user_command', UserCommandAction)
+        self.segclient.wait_for_server()
+        self.recognition=None
+        # listen for graspable objects
+        rospy.Subscriber('/interactive_object_recognition_result', GraspableObjectList, self.proc_grasp_list)
         # create the save service
         rospy.Service('~save_template', SaveTemplate, self.save)
         self.load_server = actionlib.SimpleActionServer('load_template', LoadAction, execute_cb=self.load, auto_start=False)
@@ -143,6 +151,35 @@ class FakeMarkerServer():
     def publish_result(self, msg):
         self.load_server.set_succeeded(LoadResult(msg))
 
+    def proc_grasp_list(self, msg):
+        objects = []
+        # start by going through each
+        size = len(msg.graspable_objects)
+        for i in range(size):
+            obj = msg.graspable_objects[i]
+            # only take recognized objects
+            if len(obj.potential_models) is not 0:
+                objects.append(copy.deepcopy(obj))
+        rospy.loginfo('Found ' + str(len(objects)) + ' object(s).')
+        self.recognition = objects
+
+    def look_for_objects(self):
+        self.publish_feedback('Driving robot to counter')
+        #TODO Drive the robot
+        self.publish_feedback('Aligned robot to counter')
+        self.publish_feedback('Looking for objects')
+        #Segment the table
+        self.segclient.send_goal(UserCommandGoal(request=1,interactive=False))
+        self.segclient.wait_for_result()
+        while self.recognition is None:
+            time.sleep(1)
+        #Recognize objects
+        self.recognition = None
+        self.segclient.send_goal(UserCommandGoal(request=2,interactive=False))
+        self.segclient.wait_for_result()
+        while self.recognition is None:
+            time.sleep(1)
+
     def load(self, goal):
         name = goal.name
         self.publish_feedback('Loading template ' + name)
@@ -151,8 +188,8 @@ class FakeMarkerServer():
             return
         template = self.templates[name]
         self.publish_feedback('Loaded template ' + name)
-        self.publish_feedback('Driving robot to counter')
-        #TODO Drive the robot
+        self.look_for_objects(self)
+        self.publish_result(str(len(self.recognition)))
 
 if __name__ == '__main__':    
     rospy.init_node('fake_object_markers')
