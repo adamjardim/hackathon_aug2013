@@ -200,10 +200,10 @@ class FakeMarkerServer():
             return
         template = self.templates[name]
         self.publish_feedback('Loaded template ' + name)
-        self.look_for_objects()
         # look for any objects we need
         while len(template) is not 0:
             pickup_arm = None
+            self.look_for_objects()
             for template_im in template:
                 for rec_obj in self.recognition:
                     if template_im.name == self.create_name(rec_obj.potential_models[0].model_id):
