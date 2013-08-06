@@ -201,16 +201,17 @@ class FakeMarkerServer():
         template = self.templates[name]
         self.publish_feedback('Loaded template ' + name)
         self.look_for_objects()
-        pickup = None
+        pickup_arm = None
         # look for any objects we need
         for template_im in template:
             for rec_obj in self.recognition:
                 if template_im.name == self.create_name(rec_obj.potential_models[0].model_id):
                     # pick it up
-                    pickup = self.pickup(rec_obj)
-        if pickup is None:
-            pickup = 'damnit, it didnt work.'
-        self.publish_result(pickup)
+                    pickup_arm = self.pickup(rec_obj)
+                    if pickup_arm is None:
+                        self.publish_result('Pickup failed.')
+                        return
+        self.publish_result('Great success!')
         
     def reset_collision_map(self):
         self.publish_feedback('Reseting collision map')
@@ -272,9 +273,40 @@ class FakeMarkerServer():
             self.publish_feedback('Checking if object was grasped')
             resp = self.grasp_check(arm)
             if resp.isGrasping is True:
-                return options.arm_selection
+                self.publish_feedback('Object was grasped')
+                # move the arm to the side
+                if self.move_arm_to_side(options.arm_selection):
+                    return options.arm_selection
+                else:
+                    return None
             else:
                 return None
+            
+    def move_arm_to_side(self, arm_selection):
+        goal = IMGUIGoal()
+        goal.command.command = 4
+        goal.options.arm_selection = arm_selection
+        goal.options.arm_action_choice = 0
+        goal.options.arm_planner_choice = 1
+        self.publish_feedback('Moving arm to the side using planner')
+        self.imgui.send_goal(goal)
+        self.imgui.wait_for_result()
+        # check the result
+        res = self.imgui.get_result()
+        if res.result.value is not 1:
+            # try open loop
+            self.publish_feedback('Planned arm move failed, trying open loop')
+            goal.options.arm_planner_choice = 0
+            self.imgui.send_goal(goal)
+            self.imgui.wait_for_result()
+            # check the result
+            res = self.imgui.get_result()
+        if res.result.value is not 1:
+            self.publish_feedback('Arm move failed.')
+            return False
+        else:
+            self.publish_feedback('Arm move was successful')
+            return True
 
 if __name__ == '__main__':    
     rospy.init_node('fake_object_markers')
