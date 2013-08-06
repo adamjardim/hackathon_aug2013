@@ -17,6 +17,7 @@ positionServer::positionServer()
 		const YAML::Node& name = doc[i]["name"];
 		const YAML::Node& position = doc[i]["position"];
 		const YAML::Node& orientation = doc[i]["orientation"];
+		const YAML::Node& height = doc[i]["height"];
 		name >> pos.name;
 		position[0] >> pos.pose.x;
 		position[1] >> pos.pose.y;
@@ -25,6 +26,7 @@ positionServer::positionServer()
 		orientation[1] >> q.y;
 		orientation[2] >> q.z;
 		orientation[3] >> q.w;
+		height >> pos.height;
 		pos.pose.theta = tf::getYaw(q);
 		
 		positions[pos.name] = pos;

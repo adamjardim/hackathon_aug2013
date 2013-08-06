@@ -33,10 +33,16 @@ public:
 	actionlib::SimpleActionClient<pr2_controllers_msgs::Pr2GripperCommandAction> acRightGripper;	actionlib::SimpleActionClient<pr2_interactive_object_detection::UserCommandAction> acSegment;
 	actionlib::SimpleActionClient<pr2_common_action_msgs::TuckArmsAction> acTuckArms;
 
-    actionlib::SimpleActionServer<retrieve_medicine::navigateAction> as;
+    actionlib::SimpleActionServer<retrieve_medicine::navigateAction> asNavigate;
     std::string actionName;
-    retrieve_medicine::navigateFeedback asFeedback;
-    retrieve_medicine::navigateResult asResult;
+    retrieve_medicine::navigateFeedback asNavigateFeedback;
+    retrieve_medicine::navigateResult asNavigateResult;
+
+	//Arm positions
+	std::vector<double> leftArmSidePosition;
+	std::vector<double> rightArmSidePosition;
+	std::vector<std::string> leftArmJointNames;
+	std::vector<std::string> rightArmJointNames;
 
     retrieveMedicine(std::string name);
 

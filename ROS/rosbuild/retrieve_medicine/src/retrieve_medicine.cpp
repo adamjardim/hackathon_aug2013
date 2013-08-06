@@ -12,7 +12,7 @@ retrieveMedicine::retrieveMedicine(string name) :
 	acRightGripper("/r_gripper_controller/gripper_action", true),
 	acSegment("/object_detection_user_command", true),
 	acTuckArms("/tuck_arms", true),
-	as(n, name, boost::bind(&retrieveMedicine::executeNavigate, this, _1), false),
+	asNavigate(n, name, boost::bind(&retrieveMedicine::executeNavigate, this, _1), false),
 actionName(name)
 {
 	ROS_INFO("Waiting for move_base action server...");
@@ -43,18 +43,33 @@ actionName(name)
 	acMoveTorso.waitForServer();
 	ROS_INFO("Finished waiting for torso action server.");
 
-    as.start();
+    asNavigate.start();
 
     position_client = n.serviceClient<position_server::GetPosition>("position_server/get_position");
+    
+    //Define arm joint positions
+	string rightJoints[] = {"r_shoulder_pan_joint", "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint", "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint"};
+	string leftJoints[] = {"l_shoulder_pan_joint", "l_shoulder_lift_joint", "l_upper_arm_roll_joint", "l_elbow_flex_joint", "l_forearm_roll_joint", "l_wrist_flex_joint", "l_wrist_roll_joint"};
+	leftArmJointNames.assign(leftJoints, leftJoints + 7);
+	rightArmJointNames.assign(rightJoints, rightJoints + 7);
+	double leftSidePos[] = {2.115, 0.0, 1.64, -2.07, 1.64, -1.680, 1.398};
+	double rightSidePos[] = {-2.115, 0.0, -1.64, -2.07, -1.64, -1.680, 1.398};
+	leftArmSidePosition.assign(leftSidePos, leftSidePos + 7);
+	rightArmSidePosition.assign(rightSidePos, rightSidePos + 7);
 }
-
 
 void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal)
 {
 	ROS_INFO("Goal task name: %s", goal->taskName.c_str());
 	
 	position_server::GetPosition srv;
-        srv.request.positionName = goal->taskName;
+    srv.request.positionName = goal->taskName;
+    if (!position_client.call(srv))
+    {
+    	ROS_INFO("Invalid task name, action could not finish");
+    	asNavigate.setPreempted();
+    	return;
+    }
 
 	pr2_common_action_msgs::TuckArmsGoal armTuckGoal;
 	armTuckGoal.tuck_left = true;
@@ -80,21 +95,72 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 
 	if (acMoveBase.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 	{
+		//Untuck arms and set torso height
 		pr2_common_action_msgs::TuckArmsGoal armUntuckGoal;
 		armUntuckGoal.tuck_left = false;
 		armUntuckGoal.tuck_right = false;
+		pr2_controllers_msgs::SingleJointPositionGoal torsoGoal;
+		torsoGoal.position = srv.response.position.height;
+		if (torsoGoal.position < 0.0)
+			torsoGoal.position = 0.0;
+		else if (torsoGoal.position > 0.6)
+			torsoGoal.position = 0.6;
 		acTuckArms.sendGoal(armUntuckGoal);
-		acTuckArms.waitForResult(ros::Duration(30));
-
-		ROS_INFO("%s: Succeeded complete", actionName.c_str());
-		asResult.result_msg = "Finished";
-		asResult.success = true;
-		as.setSucceeded(asResult);
+		acMoveTorso.sendGoal(torsoGoal);
+		acTuckArms.waitForResult(ros::Duration(20));
+		
+		if (goal->align)
+		{
+			//Move arms to side
+			pr2_controllers_msgs::JointTrajectoryGoal leftArmGoal;
+			leftArmGoal.trajectory.joint_names = leftArmJointNames;
+			trajectory_msgs::JointTrajectoryPoint leftSidePoint;
+			leftSidePoint.positions = leftArmSidePosition;
+			leftSidePoint.time_from_start = ros::Duration(3);
+			leftArmGoal.trajectory.points.push_back(leftSidePoint);
+			pr2_controllers_msgs::JointTrajectoryGoal rightArmGoal;
+			rightArmGoal.trajectory.joint_names = rightArmJointNames;
+			trajectory_msgs::JointTrajectoryPoint rightSidePoint;
+			rightSidePoint.positions = rightArmSidePosition;
+			rightSidePoint.time_from_start = ros::Duration(3);
+			rightArmGoal.trajectory.points.push_back(rightSidePoint);
+			acLeftArm.sendGoal(leftArmGoal);
+			acRightArm.sendGoal(rightArmGoal);
+			acLeftArm.waitForResult(ros::Duration(6));
+			acRightArm.waitForResult(ros::Duration(6));
+			
+			//Align to table
+			string alignTaskName = goal->taskName;
+			alignTaskName = alignTaskName.substr(0, alignTaskName.length() - 3);
+			alignTaskName = alignTaskName.append("Table Align");
+			srv.request.positionName = alignTaskName;
+			
+			if (!position_client.call(srv))
+			{
+				ROS_INFO("Invalid task name, action could not finish");
+				asNavigate.setPreempted();
+				return;
+			}
+			
+			
+			
+			ROS_INFO("%s: Succeeded complete", actionName.c_str());
+			asNavigateResult.result_msg = "Finished";
+			asNavigateResult.success = true;
+			asNavigate.setSucceeded(asNavigateResult);
+		}
+		else
+		{
+			ROS_INFO("%s: Succeeded complete", actionName.c_str());
+			asNavigateResult.result_msg = "Finished";
+			asNavigateResult.success = true;
+			asNavigate.setSucceeded(asNavigateResult);
+		}
 	}
 	else
 	{
 		ROS_INFO("%s: Failed to complete action", actionName.c_str());
-		as.setPreempted();
+		asNavigate.setPreempted();
 	}
 	
 }
