@@ -10,6 +10,7 @@ import pickle
 import actionlib
 from interactive_world_hackathon.msg import LoadAction, LoadFeedback, LoadResult
 import roslib
+import time
 roslib.load_manifest('pr2_interactive_object_detection')
 from pr2_interactive_object_detection.msg import UserCommandAction, UserCommandGoal
 from manipulation_msgs.msg import GraspableObject, GraspableObjectList
@@ -40,9 +41,9 @@ class FakeMarkerServer():
         # used to get model meshes
         self.get_mesh = rospy.ServiceProxy('/objects_database_node/get_model_mesh', GetModelMesh)
         self.objects = []
-        self.objects.append(18796)
-        self.objects.append(18786)
-        self.objects.append(18722)
+        self.objects.append(18808)
+        self.objects.append(18744)
+        self.objects.append(18799)
         pose = Pose()
         pose.position.z = TABLE_HEIGHT
         pose.position.x = OFFSET * 3
@@ -162,6 +163,7 @@ class FakeMarkerServer():
             # only take recognized objects
             if len(obj.potential_models) is not 0:
                 objects.append(copy.deepcopy(obj))
+                print obj.potential_models[0].model_id
         rospy.loginfo('Found ' + str(len(objects)) + ' object(s).')
         self.recognition = objects
 
@@ -170,6 +172,7 @@ class FakeMarkerServer():
         #TODO Drive the robot
         self.publish_feedback('Aligned robot to counter')
         self.publish_feedback('Looking for objects')
+        self.recognition = None
         #Segment the table
         self.segclient.send_goal(UserCommandGoal(request=1,interactive=False))
         self.segclient.wait_for_result()
@@ -190,7 +193,7 @@ class FakeMarkerServer():
             return
         template = self.templates[name]
         self.publish_feedback('Loaded template ' + name)
-        self.look_for_objects(self)
+        self.look_for_objects()
         self.publish_result(str(len(self.recognition)))
 
 if __name__ == '__main__':    
