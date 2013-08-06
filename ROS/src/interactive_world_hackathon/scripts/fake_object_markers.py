@@ -201,16 +201,22 @@ class FakeMarkerServer():
         template = self.templates[name]
         self.publish_feedback('Loaded template ' + name)
         self.look_for_objects()
-        pickup_arm = None
         # look for any objects we need
-        for template_im in template:
-            for rec_obj in self.recognition:
-                if template_im.name == self.create_name(rec_obj.potential_models[0].model_id):
-                    # pick it up
-                    pickup_arm = self.pickup(rec_obj)
-                    if pickup_arm is None:
-                        self.publish_result('Pickup failed.')
-                        return
+        while len(template) is not 0:
+            pickup_arm = None
+            for template_im in template:
+                for rec_obj in self.recognition:
+                    if template_im.name == self.create_name(rec_obj.potential_models[0].model_id):
+                        # pick it up
+                        pickup_arm = self.pickup(rec_obj)
+                        if pickup_arm is None:
+                            self.publish_result('Pickup failed.')
+                            return
+                        # good job robot!
+                        template.remove(template_im)
+            if pickup_arm is None:
+                # No objects found :(
+                self.publish_result('No objects found that we need :(')
         self.publish_result('Great success!')
         
     def reset_collision_map(self):
