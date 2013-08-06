@@ -1,0 +1,8 @@
+<launch>	
+	<!-- Load parameters -->
+	<param name="position_server/position_filename" value="$(find position_server)/config/positions.yaml" />
+	
+	<!-- Launch position server -->
+	<node pkg="position_server" type="position_server" name="position_server" />
+
+</launch>
