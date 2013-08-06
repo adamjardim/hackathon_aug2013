@@ -5,10 +5,12 @@ from geometry_msgs.msg import Pose
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
 from visualization_msgs.msg import Marker, InteractiveMarker, InteractiveMarkerControl, InteractiveMarkerFeedback
 from interactive_world_hackathon.srv import SaveTemplate, SaveTemplateResponse
+from pr2_object_manipulation_msgs.msg import IMGUIAction, IMGUIOptions, IMGUIGoal
 import copy
 import pickle
 import actionlib
 from interactive_world_hackathon.msg import LoadAction, LoadFeedback, LoadResult
+from interactive_world_hackathon.srv import GraspCheck
 import roslib
 import time
 roslib.load_manifest('pr2_interactive_object_detection')
@@ -26,10 +28,14 @@ SAVE_FILE = '/tmp/templates.r0b0t'
 
 class FakeMarkerServer():
     def __init__(self):
+        self.grasp_check = rospy.ServiceProxy('/interactive_world_hackathon/grasp_check', GraspCheck)
         # Segmentation client
         self.segclient = actionlib.SimpleActionClient('/object_detection_user_command', UserCommandAction)
         self.segclient.wait_for_server()
         self.recognition=None
+        # create the IMGUI action client
+        self.imgui = actionlib.SimpleActionClient('imgui_action', IMGUIAction)
+        self.imgui.wait_for_server()
         # listen for graspable objects
         rospy.Subscriber('/interactive_object_recognition_result', GraspableObjectList, self.proc_grasp_list)
         # create the save service
@@ -163,7 +169,6 @@ class FakeMarkerServer():
             # only take recognized objects
             if len(obj.potential_models) is not 0:
                 objects.append(copy.deepcopy(obj))
-                print obj.potential_models[0].model_id
         rospy.loginfo('Found ' + str(len(objects)) + ' object(s).')
         self.recognition = objects
 
@@ -194,7 +199,79 @@ class FakeMarkerServer():
         template = self.templates[name]
         self.publish_feedback('Loaded template ' + name)
         self.look_for_objects()
-        self.publish_result(str(len(self.recognition)))
+        # look for any objects we need
+        for template_im in template:
+            for rec_obj in self.recognition:
+                if template_im.marker_name is self.create_name(rec_obj.potential_models[0].model_id):
+                    # pick it up
+                    pickup = self.pickup(rec_obj)
+        if pickup is None:
+            pickup = 'damnit, it didnt work.' 
+        self.publish_result(pickup)
+        
+    def reset_collision_map(self):
+        self.publish_feedback('Reseting collision map')
+        goal = IMGUIGoal()
+        goal.command.command = 3
+        goal.options.reset_choice = 4
+        self.imgui.send_goal(goal)
+        self.imgui.wait_for_result()
+        self.publish_feedback('Collision map reset')
+        
+    def pickup(self, obj):
+        # start by picking up the object
+        options = IMGUIOptions()
+        options.collision_checked = True
+        options.grasp_selection = 1    
+        options.adv_options.lift_steps = 10
+        options.adv_options.retreat_steps = 10
+        options.adv_options.reactive_force = False
+        options.adv_options.reactive_grasping = False
+        options.adv_options.reactive_place = False
+        options.adv_options.lift_direction_choice = 0
+        # check which arm is closer
+        if obj.potential_models[0].pose.pose.position.y > 0:
+            options.arm_selection = 1
+        else:
+            options.arm_selection = 0
+        goal = IMGUIGoal()
+        goal.options = options
+        goal.options.grasp_selection = 1
+        goal.options.selected_object = obj
+        goal.command.command = goal.command.PICKUP
+        # send it to IMGUI
+        self.publish_feedback('Attempting to pick up')
+        self.reset_collision_map()
+        self.imgui.send_goal(goal)
+        self.imgui.wait_for_result()
+        # check the result
+        res = self.imgui.get_result()
+        if res.result.value is not 1:
+            # try the other arm
+            if options.arm_selection is 0:
+                options.arm_selection = 1
+            else:
+                options.arm_selection = 0
+            self.publish_feedback('Initial pickup failed, trying other arm')
+            self.reset_collision_map()
+            self.imgui.send_goal(goal)
+            self.imgui.wait_for_result()
+            # check the result
+            res = self.imgui.get_result()
+        if res.result.value is not 1:
+            return None
+        else:
+            # now check if feedback to see if we actually got it
+            if options.arm_selection is 0:
+                arm = 'right'
+            else:
+                arm = 'left'
+            self.publish_feedback('Checking if object was grasped')
+            resp = self.grasp_check(arm)
+            if resp.isGrasping is True:
+                return options.arm_selection
+            else:
+                return None
 
 if __name__ == '__main__':    
     rospy.init_node('fake_object_markers')
