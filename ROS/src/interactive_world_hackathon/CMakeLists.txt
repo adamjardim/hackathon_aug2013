@@ -18,6 +18,7 @@ catkin_python_setup()
 add_service_files(
   FILES
   GraspCheck.srv
+  SaveTemplate.srv
 )
 
 ## Generate added messages and services with any dependencies listed here
