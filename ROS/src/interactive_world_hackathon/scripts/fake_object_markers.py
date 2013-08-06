@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 import rospy
+import roslib
+roslib.load_manifest('pr2_interactive_object_detection')
+roslib.load_manifest('object_manipulation_msgs')
+roslib.load_manifest('pr2_object_manipulation_msgs')
 from household_objects_database_msgs.srv import GetModelMesh
 from geometry_msgs.msg import Pose
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
@@ -11,9 +15,7 @@ import pickle
 import actionlib
 from interactive_world_hackathon.msg import LoadAction, LoadFeedback, LoadResult
 from interactive_world_hackathon.srv import GraspCheck
-import roslib
 import time
-roslib.load_manifest('pr2_interactive_object_detection')
 from pr2_interactive_object_detection.msg import UserCommandAction, UserCommandGoal
 from manipulation_msgs.msg import GraspableObject, GraspableObjectList
 
