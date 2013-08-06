@@ -1,0 +1,21 @@
+- name: 'Medicine Nav'
+  position: [7.22, 3.29]
+  orientation: [-.002, .002, .001, .9999]
+- name: 'Medicine Pickup'
+  position: [7.75, 3.31]
+  orientation: [-.002, .002, .001, .9999]
+- name: 'Snack Nav'
+  position: [7.19, 4.15]
+  orientation: [-.002, .002, .001, .9999]
+- name: 'Snack Pickup'
+  position: [7.67, 4.15]
+  orientation: [-.002, .002, .001, .9999]
+- name: 'Couch Dropoff'
+  position: [4.40, 2.72]
+  orientation: [-.002, .002, .9948, -.101]
+- name: 'Table Nav'
+  position: [5.16, 2.55]
+  orientation: [-.0049, -.0011, .708, .706]
+- name: 'Table Dropoff'
+  position: [5.15, 2.83]
+  orientation: [-.0049, -.0011, .708, .706]
