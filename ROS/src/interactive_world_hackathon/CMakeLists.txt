@@ -4,7 +4,7 @@ project(interactive_world_hackathon)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS interactive_markers actionlib rospy roscpp message_generation)
+find_package(catkin REQUIRED COMPONENTS interactive_markers actionlib rospy roscpp message_generation actionlib_msgs)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and scripts declared therein get installed
@@ -18,11 +18,17 @@ catkin_python_setup()
 add_service_files(
   FILES
   GraspCheck.srv
+  SaveTemplate.srv
+)
+
+add_action_files(
+  DIRECTORY action
+  FILES Load.action
 )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
-  DEPENDENCIES
+  DEPENDENCIES actionlib_msgs
 )
 
 ###################################################
@@ -32,7 +38,9 @@ generate_messages(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package()
+catkin_package(
+  CATKIN_DEPENDS actionlib_msgs
+)
 
 ###########
 ## Build ##
