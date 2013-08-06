@@ -1,11 +1,11 @@
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
 
-double height = 0.75;
+double height = 0.7366;
 
-double width = 1.0;
-double depth = 1.5;
-double offset = 0.5;
+double width = 0.7366;
+double depth = 1.2192;
+double offset = 0.381;
 
 double legradius = 0.05;
 double colorr = 0.957;
@@ -71,6 +71,11 @@ int main( int argc, char** argv )
   ros::NodeHandle n;
   ros::Rate r(10);
   ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("create_table_marker", 1);
+  ros::Publisher leg1_pub = n.advertise<visualization_msgs::Marker>("leg1_marker", 1);
+  ros::Publisher leg2_pub = n.advertise<visualization_msgs::Marker>("leg2_marker", 1);
+  ros::Publisher leg3_pub = n.advertise<visualization_msgs::Marker>("leg3_marker", 1);
+  ros::Publisher leg4_pub = n.advertise<visualization_msgs::Marker>("leg4_marker", 1);
+
 
   while (ros::ok())
   {
@@ -93,19 +98,19 @@ int main( int argc, char** argv )
     marker.scale.y = width;
     marker.scale.z = 0.025;
 
-  marker.color.r = colorr;
-  marker.color.g = colorg;
-  marker.color.b = colorb;
-  marker.color.a = colora;
+    marker.color.r = colorr;
+    marker.color.g = colorg;
+    marker.color.b = colorb;
+    marker.color.a = colora;
 
     marker.lifetime = ros::Duration();
 
     // Publish the marker
     marker_pub.publish(marker);
 
-    for(int i = 0; i < 4; i++)
-    {
-      marker_pub.publish(create_leg(i));
-    }
+    leg1_pub.publish(create_leg(0));
+    leg2_pub.publish(create_leg(1));
+    leg3_pub.publish(create_leg(2));
+    leg4_pub.publish(create_leg(3));
   }
 }
