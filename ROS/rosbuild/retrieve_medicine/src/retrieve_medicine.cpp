@@ -14,7 +14,8 @@ retrieveMedicine::retrieveMedicine(string name) :
 	acTuckArms("/tuck_arms", true),
 	asNavigate(n, name, boost::bind(&retrieveMedicine::executeNavigate, this, _1), false),
 	asHandoff(n, "handoff_action", boost::bind(&retrieveMedicine::executeHandoff, this, _1), false),
-	actionName(name)
+	asBackup(n, "backup_action", boost::bind(&retrieveMedicine::executeBackup, this, _1), false),
+	asPickupAll(n, "pickup_all_action", boost::bind(&retrieveMedicine::executePickupAll, this, _1), false)
 {
 	ROS_INFO("Waiting for move_base action server...");
 	acMoveBase.waitForServer();
@@ -107,6 +108,15 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 
 	acMoveBase.waitForResult(ros::Duration(30));
 
+	//The action server for autonomous base navigation has a bug where it 
+	//often reports unsuccessful navigation as soon as it finishes,
+	//the goal is sent a second time to get around this bug.
+	if (acMoveBase.getState() != actionlib::SimpleClientGoalState::SUCCEEDED)
+	{
+		acMoveBase.sendGoal(moveGoal);
+		acMoveBase.waitForResult(ros::Duration(15.0));
+	}
+
 	if (acMoveBase.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 	{
 		ROS_INFO("Untuck arms and adjust height");
@@ -123,6 +133,7 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 		acTuckArms.sendGoal(armUntuckGoal);
 		acMoveTorso.sendGoal(torsoGoal);
 		acTuckArms.waitForResult(ros::Duration(20));
+		acMoveTorso.waitForResult(ros::Duration(20));
 		
 		if (goal->align)
 		{
@@ -264,24 +275,85 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 				r.sleep();
 			}		
 			
-			ROS_INFO("%s: Succeeded complete", actionName.c_str());
-			asNavigateResult.result_msg = "Finished";
+			ROS_INFO("Navigate action succeeded");
+			asNavigateResult.result_msg = "Navigation succeeded";
 			asNavigateResult.success = true;
 			asNavigate.setSucceeded(asNavigateResult);
 		}
 		else
 		{
-			ROS_INFO("%s: Succeeded complete", actionName.c_str());
-			asNavigateResult.result_msg = "Finished";
+			ROS_INFO("Navigate action succeeded");
+			asNavigateResult.result_msg = "Navigation succeeded";
 			asNavigateResult.success = true;
 			asNavigate.setSucceeded(asNavigateResult);
 		}
 	}
 	else
 	{
-		ROS_INFO("%s: Failed to complete action", actionName.c_str());
-		asNavigate.setPreempted();
+		ROS_INFO("Navigate action failed");
+		asNavigateResult.result_msg = "Navigation failed";
+		asNavigateResult.success = false;
+		asNavigate.setSucceeded(asNavigateResult);
 	}
+}
+
+void retrieveMedicine::executeBackup(const retrieve_medicine::BackupGoalConstPtr& goal)
+{
+	//backup 1 meter
+	ros::Rate r(60);
+
+	for (int i = 0; i < 120; i ++)
+	{
+		geometry_msgs::Twist baseCommand;
+		baseCommand.linear.x = -0.5;
+		baseCommand.linear.y = 0;
+		baseCommand.angular.z = 0;
+		baseCommandPublisher.publish(baseCommand);
+	
+		r.sleep();
+	}
+	
+	geometry_msgs::Twist baseCommand;
+	baseCommand.linear.x = 0;
+	baseCommand.linear.y = 0;
+	baseCommand.angular.z = 0;
+	baseCommandPublisher.publish(baseCommand);
+	
+	//reset torso height
+	pr2_controllers_msgs::SingleJointPositionGoal torsoGoal;
+	torsoGoal.position = 0.0;
+	acMoveTorso.sendGoal(torsoGoal);
+	acMoveTorso.waitForResult(ros::Duration(20));
+	
+	//tuck arms
+	pr2_common_action_msgs::TuckArmsGoal armTuckGoal;
+	armTuckGoal.tuck_left = true;
+	armTuckGoal.tuck_right = true;
+	acTuckArms.sendGoal(armTuckGoal);
+	acTuckArms.waitForResult(ros::Duration(15));
+}
+
+void retrieveMedicine::executePickupAll(const retrieve_medicine::PickupAllGoalConstPtr& goal)
+{
+	//open grippers
+	pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
+	openGripper.command.position = 0.08;
+	openGripper.command.max_effort = -1.0;
+	acLeftGripper.sendGoal(openGripper);
+	acRightGripper.sendGoal(openGripper);
+	
+	//center head on table
+	pr2_interactive_object_detection::UserCommandGoal segmentGoal;
+	segmentGoal.request = 0;	//look at table
+	acSegment.sendGoal(segmentGoal);
+	acSegment.waitForResult(ros::Duration(15));
+	
+	//segment
+	segmentGoal.request = 1;	//segment
+	acSegment.sendGoal(segmentGoal);
+	acSegment.waitForResult(ros::Duration(15));
+	
+	//pickup objects
 	
 }
 

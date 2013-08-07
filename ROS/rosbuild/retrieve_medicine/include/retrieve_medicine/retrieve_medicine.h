@@ -8,6 +8,8 @@
 #include <pr2_controllers_msgs/Pr2GripperCommandAction.h>
 #include <retrieve_medicine/navigateAction.h>
 #include <retrieve_medicine/handoffAction.h>
+#include <retrieve_medicine/BackupAction.h>
+#include <retrieve_medicine/PickupAllAction.h>
 #include <pr2_controllers_msgs/SingleJointPositionAction.h>
 #include <pr2_interactive_object_detection/UserCommandAction.h>
 #include <trajectory_msgs/JointTrajectory.h>
@@ -17,6 +19,8 @@
 #include <nav_msgs/Odometry.h>
 #include <position_server/GetPosition.h>
 #include <tf/tf.h>
+//#include <pr2_object_manipulation_msgs/IMGUICommand.h>
+//#include <pr2_object_manipulation_msgs/IMGUIOptions.h>
 
 #define KP_POS 4
 #define KI_POS .001
@@ -52,17 +56,25 @@ public:
 	actionlib::SimpleActionClient<pr2_controllers_msgs::Pr2GripperCommandAction> acRightGripper;
 	actionlib::SimpleActionClient<pr2_interactive_object_detection::UserCommandAction> acSegment;
 	actionlib::SimpleActionClient<pr2_common_action_msgs::TuckArmsAction> acTuckArms;
+	//actionlib::SimpleActionClient<pr2_object_manipulation_msgs::IMGUI
 
+	//Action servers
 	actionlib::SimpleActionServer<retrieve_medicine::navigateAction> asNavigate;
 	actionlib::SimpleActionServer<retrieve_medicine::handoffAction> asHandoff;
-	
-	std::string actionName;
+	actionlib::SimpleActionServer<retrieve_medicine::BackupAction> asBackup;
+	actionlib::SimpleActionServer<retrieve_medicine::PickupAllAction> asPickupAll;
     
 	retrieve_medicine::navigateFeedback asNavigateFeedback;
 	retrieve_medicine::navigateResult asNavigateResult;
     
 	retrieve_medicine::handoffFeedback asHandoffFeedback;
 	retrieve_medicine::handoffResult asHandoffResult;
+	
+	retrieve_medicine::BackupFeedback asBackupFeedback;
+	retrieve_medicine::BackupResult asBackupResult;
+	
+	retrieve_medicine::PickupAllFeedback asPickupAllFeedback;
+	retrieve_medicine::PickupAllResult asPickupAllResult;
 
 	//Arm positions
 	std::vector<double> leftArmSidePosition;
@@ -79,6 +91,10 @@ public:
 	retrieveMedicine(std::string name);
 
     void executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal);
+    
+    void executeBackup(const retrieve_medicine::BackupGoalConstPtr& goal);
+    
+    void executePickupAll(const retrieve_medicine::PickupAllGoalConstPtr& goal);
     
     void basePoseCallback(const geometry_msgs::Pose& newPose);
     
