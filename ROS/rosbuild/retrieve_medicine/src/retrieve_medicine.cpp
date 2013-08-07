@@ -101,7 +101,9 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 	move_base_msgs::MoveBaseGoal moveGoal;
 	
 	float dstToGoal = sqrt(pow(basePose.position.x - target.pose.position.x, 2) + pow(basePose.position.y - target.pose.position.y, 2));
-	float navSuccessThreshold = .5;
+	float navSuccessThreshold = .3;
+	
+	ROS_INFO("Distance to nav goal: %f", dstToGoal);
 	
 	if (dstToGoal > navSuccessThreshold)
 	{
@@ -124,16 +126,17 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 		dstToGoal = sqrt(pow(basePose.position.x - target.pose.position.x, 2) + pow(basePose.position.y - target.pose.position.y, 2));
 	
 		ROS_INFO("Distance to nav goal: %f", dstToGoal);
-	}
+	
 
-	//The action server for autonomous base navigation has a bug where it 
-	//often reports unsuccessful navigation as soon as it finishes,
-	//the goal is sent a second time to get around this bug.
-	if (dstToGoal > navSuccessThreshold || acMoveBase.getState() != actionlib::SimpleClientGoalState::SUCCEEDED)
-	{
-		acMoveBase.sendGoal(moveGoal);
-		acMoveBase.waitForResult(ros::Duration(15.0));
-		dstToGoal = sqrt(pow(basePose.position.x - target.pose.position.x, 2) + pow(basePose.position.y - target.pose.position.y, 2));
+		//The action server for autonomous base navigation has a bug where it 
+		//often reports unsuccessful navigation as soon as it finishes,
+		//the goal is sent a second time to get around this bug.
+		if (dstToGoal > navSuccessThreshold || acMoveBase.getState() != actionlib::SimpleClientGoalState::SUCCEEDED)
+		{
+			acMoveBase.sendGoal(moveGoal);
+			acMoveBase.waitForResult(ros::Duration(15.0));
+			dstToGoal = sqrt(pow(basePose.position.x - target.pose.position.x, 2) + pow(basePose.position.y - target.pose.position.y, 2));
+		}
 	}
 
 	if (dstToGoal < navSuccessThreshold || acMoveBase.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
