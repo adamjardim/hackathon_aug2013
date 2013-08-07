@@ -13,7 +13,7 @@ retrieveMedicine::retrieveMedicine(string name) :
 	acSegment("/object_detection_user_command", true),
 	acTuckArms("/tuck_arms", true),
 	asNavigate(n, name, boost::bind(&retrieveMedicine::executeNavigate, this, _1), false),
-	asHandoff(n, name, boost::bind(&retrieveMedicine::executeHandoff, this, _1), false),
+	asHandoff(n, "handoff_action", boost::bind(&retrieveMedicine::executeHandoff, this, _1), false),
 	actionName(name)
 {
 	ROS_INFO("Waiting for move_base action server...");
@@ -167,7 +167,7 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 			pickupPos.y = srv.response.position.pose.y;
 			pickupPos.t = srv.response.position.pose.theta;
 			
-			float currentHeading = tf::getYaw(basePose.orientation);
+			float currentHeading = asin(basePose.orientation.z) * 2;
 			
 			float xError = pickupPos.x - basePose.position.x;
 			float yError = pickupPos.y - basePose.position.y;
@@ -186,7 +186,7 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 			
 			while (fabs(turnError) > .0873 || fabs(xError) > .05 || fabs(yError) > .05)
 			{
-				currentHeading = tf::getYaw(basePose.orientation);
+				currentHeading = asin(basePose.orientation.z) * 2;
 				
 				xError = pickupPos.x - basePose.position.x;
 				yError = pickupPos.y - basePose.position.y;
@@ -232,8 +232,9 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 				
 					xVel = hErr*cos(currentHeading) + vErr*sin(currentHeading);
 					yVel = (-1*hErr*sin(currentHeading) + vErr*cos(currentHeading));
-					//ROS_INFO("hErr: %f, vErr: %f; xVel: %f, yVel: %f", hErr, vErr, xVel, yVel);
-				}
+					ROS_INFO("currentHeading: %f, hErr: %f, vErr: %f; xVel: %f, yVel: %f", currentHeading, hErr, vErr, xVel, yVel);
+					ROS_INFO("xError: %f, yError: %f", xError, yError);			
+	}
 			
 				if (xVel > 1)
 					xVel = 1;
