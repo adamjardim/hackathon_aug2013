@@ -16,11 +16,29 @@
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Odometry.h>
 #include <position_server/GetPosition.h>
+#include <tf/tf.h>
+
+#define KP_POS 4
+#define KI_POS .001
+#define KD_POS .01
+#define KP_ORI 4.3
+#define KI_ORI .01
+#define KD_ORI .008
+
+#define PI 3.14159
+
+struct vec3
+{
+	float x, y, t;
+};
 
 class retrieveMedicine
 {
 public: 
-	ros::NodeHandle n;    
+    ros::NodeHandle n;
+    
+    ros::Publisher baseCommandPublisher;
+    ros::Subscriber basePoseSubscriber;
 
 	ros::ServiceClient position_client;
 
@@ -55,10 +73,15 @@ public:
 
 	std::vector<std::string> leftArmJointNames;
 	std::vector<std::string> rightArmJointNames;
+	
+	geometry_msgs::Pose basePose;
 
 	retrieveMedicine(std::string name);
 
-	void executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal);
+    void executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal);
+    
+    void basePoseCallback(const geometry_msgs::Pose& newPose);
+    
 	void executeHandoff(const retrieve_medicine::handoffGoalConstPtr& goal);
 };
 

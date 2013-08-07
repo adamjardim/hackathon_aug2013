@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<script src="../include/EventEmitter2/eventemitter2.js"></script>
+<script src="../include/threejs/three.js"></script>
+<script src="../include/roslibjs/roslib.js"></script>
+<script src="../include/ColladaAnimationCompress/ColladaLoader2.js"></script>
+<script src="../include/ros3djs/ros3d.js"></script>
+<script src="../build/templatemaker.js"></script>
+
+<script type="text/javascript">
+  /**
+   * Setup all visualization elements when the page is loaded. 
+   */
+  function init() {
+    // Connect to ROS.
+    var ros = new ROSLIB.Ros({
+      url : 'ws://localhost:9090'
+    });
+    
+    // setup a client to listen to TFs
+    var tfClient = new ROSLIB.TFClient({
+      ros : ros,
+      angularThres : 0.01,
+      transThres : 0.01,
+      rate : 10.0
+    });
+    
+    // create the template maker
+    var maker = new TEMPLATEMAKER.Maker({
+      ros : ros,
+      tfClient : tfClient
+    });
+    
+    // create the interface when we click the button
+    var button = document.getElementById('button');
+    button.onclick = function() {
+      maker.display();
+    };
+  }
+</script>
+</head>
+
+<body onload="init()">
+  <h1>Simple Template Maker Example</h1>
+  <button id="button">Create Template</button>
+</body>
+</html>

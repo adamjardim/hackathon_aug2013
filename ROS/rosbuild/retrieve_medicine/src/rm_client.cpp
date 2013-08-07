@@ -30,6 +30,7 @@ bool rmClient::callAction(retrieve_medicine::CallAction::Request &req, retrieve_
 {
    retrieve_medicine::navigateGoal goal;
    goal.taskName = req.taskName;
+   goal.align = req.align;
    ac.sendGoal(goal);
 
    return true;   

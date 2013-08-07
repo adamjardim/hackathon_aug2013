@@ -13,7 +13,7 @@ retrieveMedicine::retrieveMedicine(string name) :
 	acSegment("/object_detection_user_command", true),
 	acTuckArms("/tuck_arms", true),
 	asNavigate(n, name, boost::bind(&retrieveMedicine::executeNavigate, this, _1), false),
-	asHandoff(n, name, boost::bind(&retrieveMedicine::executeHandoff, this, _1), false),
+	asHandoff(n, "handoff_action", boost::bind(&retrieveMedicine::executeHandoff, this, _1), false),
 	actionName(name)
 {
 	ROS_INFO("Waiting for move_base action server...");
@@ -45,10 +45,11 @@ retrieveMedicine::retrieveMedicine(string name) :
 	ROS_INFO("Finished waiting for torso action server.");
 
 	asNavigate.start();
-
 	asHandoff.start();
 
-	position_client = n.serviceClient<position_server::GetPosition>("position_server/get_position");
+	baseCommandPublisher = n.advertise<geometry_msgs::Twist>("/base_controller/command", -1);
+
+    position_client = n.serviceClient<position_server::GetPosition>("position_server/get_position");
     
     //Define arm joint positions
 	string rightJoints[] = {"r_shoulder_pan_joint", "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint", "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint"};
@@ -59,11 +60,12 @@ retrieveMedicine::retrieveMedicine(string name) :
 	double rightSidePos[] = {-2.115, 0.0, -1.64, -2.07, -1.64, -1.680, 1.398};
 	leftArmSidePosition.assign(leftSidePos, leftSidePos + 7);
 	rightArmSidePosition.assign(rightSidePos, rightSidePos + 7);
-
 	double leftHandoffPos[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 	double rightHandoffPos[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 	leftArmHandoffPosition.assign(leftHandoffPos, leftHandoffPos + 7);
 	rightArmHandoffPosition.assign(rightHandoffPos, rightHandoffPos + 7);
+	
+	basePoseSubscriber = n.subscribe("/robot_pose", 1, &retrieveMedicine::basePoseCallback, this);
 }
 
 void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal)
@@ -79,12 +81,16 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
     	return;
     }
 
+	ROS_INFO("Tucking arms");
+
 	pr2_common_action_msgs::TuckArmsGoal armTuckGoal;
 	armTuckGoal.tuck_left = true;
 	armTuckGoal.tuck_right = true;
 	acTuckArms.sendGoal(armTuckGoal);
 	acTuckArms.waitForResult(ros::Duration(15));
 
+	ROS_INFO("Navigating to requested position");
+	
 	geometry_msgs::PoseStamped target;
 	target.header.frame_id = "/map";
 	target.pose.position.x = srv.response.position.pose.x;
@@ -103,6 +109,7 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 
 	if (acMoveBase.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 	{
+		ROS_INFO("Untuck arms and adjust height");
 		//Untuck arms and set torso height
 		pr2_common_action_msgs::TuckArmsGoal armUntuckGoal;
 		armUntuckGoal.tuck_left = false;
@@ -119,7 +126,10 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 		
 		if (goal->align)
 		{
+			ros::Rate r(60);
+			
 			//Move arms to side
+			ROS_INFO("Moving arms to side position");
 			pr2_controllers_msgs::JointTrajectoryGoal leftArmGoal;
 			leftArmGoal.trajectory.joint_names = leftArmJointNames;
 			trajectory_msgs::JointTrajectoryPoint leftSidePoint;
@@ -137,7 +147,7 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 			acLeftArm.waitForResult(ros::Duration(6));
 			acRightArm.waitForResult(ros::Duration(6));
 			
-			//Align to table
+			//Get align to table position
 			string alignTaskName = goal->taskName;
 			alignTaskName = alignTaskName.substr(0, alignTaskName.length() - 3);
 			alignTaskName = alignTaskName.append("Table Align");
@@ -148,6 +158,110 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 				ROS_INFO("Invalid task name, action could not finish");
 				asNavigate.setPreempted();
 				return;
+			}
+			
+			//Align to table with lower-level control
+			ROS_INFO("Aligning to table");
+			vec3 pickupPos;
+			pickupPos.x = srv.response.position.pose.x;
+			pickupPos.y = srv.response.position.pose.y;
+			pickupPos.t = srv.response.position.pose.theta;
+			
+			float currentHeading = asin(basePose.orientation.z) * 2;
+			
+			float xError = pickupPos.x - basePose.position.x;
+			float yError = pickupPos.y - basePose.position.y;
+			float turnError = pickupPos.t - currentHeading;
+			if (turnError < -PI)
+				turnError += 2*PI;
+			else if (turnError > PI)
+				turnError -= 2*PI;
+			
+			float totalTurnError = 0;
+			float totalXError = 0;
+			float totalYError = 0;
+			float prevTurnError = 0;
+			float prevXError = xError;
+			float prevYError = yError;
+			
+			while (fabs(turnError) > .0873 || fabs(xError) > .05 || fabs(yError) > .05)
+			{
+				currentHeading = asin(basePose.orientation.z) * 2;
+				
+				xError = pickupPos.x - basePose.position.x;
+				yError = pickupPos.y - basePose.position.y;
+				turnError = pickupPos.t - currentHeading;
+				if (turnError < -PI)
+					turnError += 2*PI;
+				else if (turnError > PI)
+					turnError -= 2*PI;
+				
+				float xVel = 0.0;
+				float yVel = 0.0;
+				float tVel = 0.0;
+				
+				//correct orientation
+				if (fabs(turnError) > .05)
+				{
+					totalXError = 0;
+					totalYError = 0;
+					tVel = KP_ORI*turnError + KI_ORI*totalTurnError + KD_ORI*(turnError - prevTurnError);
+					totalTurnError += turnError;
+					prevTurnError = turnError;
+					
+					if (fabs(tVel) < .25)
+					{
+						if (tVel < 0)
+							tVel = -.25;
+						else
+							tVel = .25;
+					}
+				}
+				//correct position
+				else
+				{
+					totalTurnError = 0;
+					float hErr = KP_POS*xError + KI_POS*totalXError
+					+ KD_POS*(xError - prevXError);
+					totalXError += xError;
+					prevXError = xError;
+					float vErr = KP_POS*yError + KI_POS*totalYError
+					+ KD_POS*(yError - prevYError);
+					totalYError += yError;
+					prevYError = yError;
+				
+					xVel = hErr*cos(currentHeading) + vErr*sin(currentHeading);
+					yVel = (-1*hErr*sin(currentHeading) + vErr*cos(currentHeading));
+					ROS_INFO("currentHeading: %f, hErr: %f, vErr: %f; xVel: %f, yVel: %f", currentHeading, hErr, vErr, xVel, yVel);
+					ROS_INFO("xError: %f, yError: %f", xError, yError);			
+	}
+			
+				if (xVel > 1)
+					xVel = 1;
+				else if (xVel < -1)
+					xVel = -1;
+				if (yVel > 1)
+					yVel = 1;
+				else if (yVel < -1)
+					yVel = -1;
+				if (tVel > 1)
+					tVel = 1;
+				else if (tVel < -1)
+					tVel = -1;
+					
+				//reduce speed for safety
+				xVel =	xVel * .25;
+				yVel = 	yVel * .25;
+				tVel = tVel * .5;
+		
+				//publish to cmd_vel
+				geometry_msgs::Twist baseCommand;
+				baseCommand.linear.x = xVel;
+				baseCommand.linear.y = yVel;
+				baseCommand.angular.z = tVel;
+				baseCommandPublisher.publish(baseCommand);
+			
+				r.sleep();
 			}		
 			
 			ROS_INFO("%s: Succeeded complete", actionName.c_str());
@@ -169,6 +283,17 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 		asNavigate.setPreempted();
 	}
 	
+}
+
+void retrieveMedicine::basePoseCallback(const geometry_msgs::Pose& newPose)
+{
+	basePose.position.x = newPose.position.x;
+	basePose.position.y = newPose.position.y;
+	basePose.position.z = newPose.position.z;
+	basePose.orientation.x = newPose.orientation.x;
+	basePose.orientation.y = newPose.orientation.y;
+	basePose.orientation.z = newPose.orientation.z;
+	basePose.orientation.w = newPose.orientation.w;
 }
 
 void retrieveMedicine::executeHandoff(const retrieve_medicine::handoffGoalConstPtr& goal)
@@ -196,7 +321,6 @@ void retrieveMedicine::executeHandoff(const retrieve_medicine::handoffGoalConstP
 	acRightArm.waitForResult(ros::Duration(6));
 
 	//
-	
 }
 
 int main(int argc, char **argv)
