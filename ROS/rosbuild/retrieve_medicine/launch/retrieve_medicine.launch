@@ -1,9 +1,9 @@
 <launch>		
 	<!-- Launch position server -->
-	<include file="$(find position_server)/launch/position_server.launch"></include>
+	<include file="$(find position_server)/launch/position_server.launch" />
 
 	<!-- Launch robot pose publisher -->
-	<node pkg="robot_pose_publisher" type="robot_pose_publisher" name="robot_pose_publisher />
+	<node pkg="robot_pose_publisher" type="robot_pose_publisher" name="robot_pose_publisher" />
 	
 	<!-- Launch retrieve medicine -->
 	<node pkg="retrieve_medicine" type="task_actions" name="task_actions" />
