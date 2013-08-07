@@ -10,6 +10,7 @@
 #include <retrieve_medicine/handoffAction.h>
 #include <retrieve_medicine/BackupAction.h>
 #include <retrieve_medicine/PickupAllAction.h>
+#include <retrieve_medicine/ReleaseAction.h>
 #include <pr2_controllers_msgs/SingleJointPositionAction.h>
 #include <pr2_interactive_object_detection/UserCommandAction.h>
 #include <trajectory_msgs/JointTrajectory.h>
@@ -19,6 +20,7 @@
 #include <nav_msgs/Odometry.h>
 #include <position_server/GetPosition.h>
 #include <tf/tf.h>
+#include <tf/transform_listener.h>
 #include <pr2_object_manipulation_msgs/IMGUIAction.h>
 //#include <pr2_object_manipulation_msgs/IMGUICommand.h>
 //#include <pr2_object_manipulation_msgs/IMGUIOptions.h>
@@ -64,6 +66,7 @@ public:
 	actionlib::SimpleActionServer<retrieve_medicine::handoffAction> asHandoff;
 	actionlib::SimpleActionServer<retrieve_medicine::BackupAction> asBackup;
 	actionlib::SimpleActionServer<retrieve_medicine::PickupAllAction> asPickupAll;
+	actionlib::SimpleActionServer<retrieve_medicine::ReleaseAction> asRelease;
     
 	retrieve_medicine::navigateFeedback asNavigateFeedback;
 	retrieve_medicine::navigateResult asNavigateResult;
@@ -76,6 +79,9 @@ public:
 	
 	retrieve_medicine::PickupAllFeedback asPickupAllFeedback;
 	retrieve_medicine::PickupAllResult asPickupAllResult;
+
+	retrieve_medicine::ReleaseFeedback asReleaseFeedback;
+	retrieve_medicine::ReleaseResult asReleaseResult;
 
 	//Arm positions
 	std::vector<double> leftArmSidePosition;
@@ -91,14 +97,16 @@ public:
 
 	taskActions();
 
-    void executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal);
+        void executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal);
     
-    void executeBackup(const retrieve_medicine::BackupGoalConstPtr& goal);
+	void executeBackup(const retrieve_medicine::BackupGoalConstPtr& goal);
     
-    void executePickupAll(const retrieve_medicine::PickupAllGoalConstPtr& goal);
+	void executePickupAll(const retrieve_medicine::PickupAllGoalConstPtr& goal);
     
-    void basePoseCallback(const geometry_msgs::Pose& newPose);
+	void basePoseCallback(const geometry_msgs::Pose& newPose);
     
 	void executeHandoff(const retrieve_medicine::handoffGoalConstPtr& goal);
+
+	void executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& goal);
 };
 
