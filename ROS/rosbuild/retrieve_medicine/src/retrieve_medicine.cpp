@@ -12,6 +12,7 @@ retrieveMedicine::retrieveMedicine(string name) :
 	acRightGripper("/r_gripper_controller/gripper_action", true),
 	acSegment("/object_detection_user_command", true),
 	acTuckArms("/tuck_arms", true),
+	acIMGUI("/imgui_action", true),
 	asNavigate(n, name, boost::bind(&retrieveMedicine::executeNavigate, this, _1), false),
 	asHandoff(n, "handoff_action", boost::bind(&retrieveMedicine::executeHandoff, this, _1), false),
 	asBackup(n, "backup_action", boost::bind(&retrieveMedicine::executeBackup, this, _1), false),
@@ -45,8 +46,14 @@ retrieveMedicine::retrieveMedicine(string name) :
 	acMoveTorso.waitForServer();
 	ROS_INFO("Finished waiting for torso action server.");
 
+	ROS_INFO("Waiting for IMGUI action server...");
+	acIMGUI.waitForServer();
+	ROS_INFO("Finished waiting for IMGUI action server.");
+
 	asNavigate.start();
 	asHandoff.start();
+	asBackup.start();
+	asPickupAll.start();
 
 	baseCommandPublisher = n.advertise<geometry_msgs::Twist>("/base_controller/command", -1);
 
@@ -108,16 +115,21 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 
 	acMoveBase.waitForResult(ros::Duration(30));
 
+	float dstToGoal = sqrt(pow(basePose.position.x - target.pose.position.x, 2) + pow(basePose.position.y - target.pose.position.y, 2));
+	float navSuccessThreshold = .5;
+
+	ROS_INFO("Distance to nav goal: %f", dstToGoal);
+
 	//The action server for autonomous base navigation has a bug where it 
 	//often reports unsuccessful navigation as soon as it finishes,
 	//the goal is sent a second time to get around this bug.
-	if (acMoveBase.getState() != actionlib::SimpleClientGoalState::SUCCEEDED)
+	if (dstToGoal > navSuccessThreshold || acMoveBase.getState() != actionlib::SimpleClientGoalState::SUCCEEDED)
 	{
 		acMoveBase.sendGoal(moveGoal);
 		acMoveBase.waitForResult(ros::Duration(15.0));
 	}
 
-	if (acMoveBase.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+	if (dstToGoal < navSuccessThreshold || acMoveBase.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 	{
 		ROS_INFO("Untuck arms and adjust height");
 		//Untuck arms and set torso height
@@ -243,8 +255,8 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 				
 					xVel = hErr*cos(currentHeading) + vErr*sin(currentHeading);
 					yVel = (-1*hErr*sin(currentHeading) + vErr*cos(currentHeading));
-					ROS_INFO("currentHeading: %f, hErr: %f, vErr: %f; xVel: %f, yVel: %f", currentHeading, hErr, vErr, xVel, yVel);
-					ROS_INFO("xError: %f, yError: %f", xError, yError);			
+					//ROS_INFO("currentHeading: %f, hErr: %f, vErr: %f; xVel: %f, yVel: %f", currentHeading, hErr, vErr, xVel, yVel);
+					//ROS_INFO("xError: %f, yError: %f", xError, yError);			
 	}
 			
 				if (xVel > 1)
@@ -354,7 +366,12 @@ void retrieveMedicine::executePickupAll(const retrieve_medicine::PickupAllGoalCo
 	acSegment.waitForResult(ros::Duration(15));
 	
 	//pickup objects
+	pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
+	pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
+	pr2_object_manipulation_msgs::IMGUICommand imguiCommand;
 	
+	imguiOptions.collision_checked = true;
+	imguiOptions.grasp_selection = 1;
 }
 
 void retrieveMedicine::basePoseCallback(const geometry_msgs::Pose& newPose)
