@@ -88,16 +88,6 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
     	asNavigate.setPreempted();
     	return;
     }
-
-	ROS_INFO("Tucking arms");
-
-	pr2_common_action_msgs::TuckArmsGoal armTuckGoal;
-	armTuckGoal.tuck_left = true;
-	armTuckGoal.tuck_right = true;
-	acTuckArms.sendGoal(armTuckGoal);
-	acTuckArms.waitForResult(ros::Duration(15));
-
-	ROS_INFO("Navigating to requested position");
 	
 	geometry_msgs::PoseStamped target;
 	target.header.frame_id = "/map";
@@ -108,17 +98,33 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 	target.pose.orientation.y = 0.0;
 	target.pose.orientation.z = sin(srv.response.position.pose.theta/2.0);
 	target.pose.orientation.w = cos(srv.response.position.pose.theta/2.0);
-
 	move_base_msgs::MoveBaseGoal moveGoal;
-	moveGoal.target_pose = target;
-	acMoveBase.sendGoal(moveGoal);
-
-	acMoveBase.waitForResult(ros::Duration(30));
-
+	
 	float dstToGoal = sqrt(pow(basePose.position.x - target.pose.position.x, 2) + pow(basePose.position.y - target.pose.position.y, 2));
 	float navSuccessThreshold = .5;
+	
+	if (dstToGoal > navSuccessThreshold)
+	{
+		ROS_INFO("Tucking arms");
 
-	ROS_INFO("Distance to nav goal: %f", dstToGoal);
+		pr2_common_action_msgs::TuckArmsGoal armTuckGoal;
+		armTuckGoal.tuck_left = true;
+		armTuckGoal.tuck_right = true;
+		acTuckArms.sendGoal(armTuckGoal);
+		acTuckArms.waitForResult(ros::Duration(15));
+
+		ROS_INFO("Navigating to requested position");
+
+		moveGoal.target_pose = target;
+		acMoveBase.sendGoal(moveGoal);
+
+		acMoveBase.waitForResult(ros::Duration(30));
+	
+
+		dstToGoal = sqrt(pow(basePose.position.x - target.pose.position.x, 2) + pow(basePose.position.y - target.pose.position.y, 2));
+	
+		ROS_INFO("Distance to nav goal: %f", dstToGoal);
+	}
 
 	//The action server for autonomous base navigation has a bug where it 
 	//often reports unsuccessful navigation as soon as it finishes,
