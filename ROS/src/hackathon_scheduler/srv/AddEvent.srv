@@ -1,0 +1,5 @@
+#request
+Event event
+---
+#response
+bool success
