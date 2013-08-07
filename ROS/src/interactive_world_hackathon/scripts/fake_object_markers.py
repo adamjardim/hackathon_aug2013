@@ -4,6 +4,10 @@ import roslib
 roslib.load_manifest('pr2_interactive_object_detection')
 roslib.load_manifest('object_manipulation_msgs')
 roslib.load_manifest('pr2_object_manipulation_msgs')
+roslib.load_manifest('object_manipulator')
+roslib.load_manifest('retrieve_medicine')
+from retrieve_medicine.msg import navigateGoal, navigateAction, BackupGoal, BackupAction
+from object_manipulator.convert_functions import get_transform, pose_to_mat
 from household_objects_database_msgs.srv import GetModelMesh
 from geometry_msgs.msg import Pose
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
@@ -18,7 +22,13 @@ from interactive_world_hackathon.srv import GraspCheck
 import time
 from pr2_interactive_object_detection.msg import UserCommandAction, UserCommandGoal
 from manipulation_msgs.msg import GraspableObject, GraspableObjectList
+from object_manipulator.convert_functions import change_pose_stamped_frame, pose_to_mat, mat_to_pose, stamp_pose, create_vector3_stamped
+from object_manipulation_msgs.msg import PickupActionResult, PlaceAction, PlaceGoal, GripperTranslation
+from math import pi, sin, cos
+import tf
 
+#TABLE_HEIGHT = 0.92
+PLACE_HEIGHT_OFFSET = 0.04
 TABLE_HEIGHT = 0.75
 OFFSET = 0.381
 DEPTH_START = 0.0254
@@ -30,7 +40,17 @@ SAVE_FILE = '/tmp/templates.r0b0t'
 
 class FakeMarkerServer():
     def __init__(self):
+        # create a simple TF listener
+        self.tf_listener = tf.TransformListener()
         self.grasp_check = rospy.ServiceProxy('/interactive_world_hackathon/grasp_check', GraspCheck)
+        # create the nav client
+        self.nav = actionlib.SimpleActionClient('navigate_action', navigateAction)
+        self.nav.wait_for_server()
+        self.backup = actionlib.SimpleActionClient('backup_action', BackupAction)
+        self.backup.wait_for_server()
+        # create the place action client
+        self.place = actionlib.SimpleActionClient('object_manipulator/object_manipulator_place', PlaceAction)
+        self.place.wait_for_server()
         # Segmentation client
         self.segclient = actionlib.SimpleActionClient('/object_detection_user_command', UserCommandAction)
         self.segclient.wait_for_server()
@@ -48,6 +68,9 @@ class FakeMarkerServer():
         self.server = InteractiveMarkerServer('~fake_marker_server')
         # used to get model meshes
         self.get_mesh = rospy.ServiceProxy('/objects_database_node/get_model_mesh', GetModelMesh)
+        # hack to get the grasp
+        rospy.Subscriber('/object_manipulator/object_manipulator_pickup/result', PickupActionResult, self.store_grasp)
+        self.last_grasp = None
         self.objects = []
         self.objects.append(18808)
         self.objects.append(18744)
@@ -60,6 +83,9 @@ class FakeMarkerServer():
         except:
             self.templates = dict()
             rospy.loginfo('New template file started.')
+        
+    def store_grasp(self, msg):
+        self.last_grasp = msg.result.grasp
             
     def create_name(self, mesh_id):
         return 'object_' + str(mesh_id)
@@ -152,9 +178,11 @@ class FakeMarkerServer():
             return SaveTemplateResponse(False)
 
     def publish_feedback(self, msg):
+        rospy.loginfo(msg)
         self.load_server.publish_feedback(LoadFeedback(msg))
 
     def publish_result(self, msg):
+        rospy.loginfo(msg)
         self.load_server.set_succeeded(LoadResult(msg))
 
     def proc_grasp_list(self, msg):
@@ -171,7 +199,13 @@ class FakeMarkerServer():
 
     def look_for_objects(self):
         self.publish_feedback('Driving robot to counter')
-        #TODO Drive the robot
+        # drive the robot
+        nav_goal = navigateGoal('Snack Nav', True)
+        self.nav.send_goal_and_wait(nav_goal)
+        res = self.nav.get_result()
+        if not res.success:
+            self.publish_feedback('Counter alignment failed.')
+            return False
         self.publish_feedback('Aligned robot to counter')
         self.publish_feedback('Looking for objects')
         self.recognition = None
@@ -186,6 +220,7 @@ class FakeMarkerServer():
         self.segclient.wait_for_result()
         while self.recognition is None:
             time.sleep(1)
+        return True
 
     def load(self, goal):
         name = goal.name
@@ -193,25 +228,47 @@ class FakeMarkerServer():
         if name not in self.templates.keys():
             self.publish_result(name + ' template does not exist')
             return
-        template = self.templates[name]
+        template = copy.deepcopy(self.templates[name])
         self.publish_feedback('Loaded template ' + name)
         # look for any objects we need
         while len(template) is not 0:
             pickup_arm = None
-            self.look_for_objects()
+            if not self.look_for_objects():
+                self.publish_result('Object looking failed.')
+                return
             for template_im in template:
                 for rec_obj in self.recognition:
                     if template_im.name == self.create_name(rec_obj.potential_models[0].model_id):
+                        # create the object info for it
+                        obj_info = self.create_object_info(rec_obj)
                         # pick it up
                         pickup_arm = self.pickup(rec_obj)
                         if pickup_arm is None:
                             self.publish_result('Pickup failed.')
                             return
-                        # good job robot!
+                        # make sure we have a grasp
+                        self.publish_feedback('Waiting for grasp')
+                        while self.last_grasp is None:
+                            rospy.sleep(1)
+                        # store the grasp
+                        obj_info.grasp = self.last_grasp
+                        self.last_grasp = None
+                        self.publish_feedback('Grasp found')
+                        # good job robot, place that object
+                        to_place = Pose()
+                        to_place.position.z = TABLE_HEIGHT - PLACE_HEIGHT_OFFSET
+                        to_place.position.x = template_im.pose.position.x
+                        to_place.position.y = template_im.pose.position.y
+                        placed = self.place_object(obj_info, pickup_arm, to_place)
+                        if not placed:
+                            self.publish_result('Place failed.')
+                            return
+                        self.publish_feedback('Placed the object!')
                         template.remove(template_im)
             if pickup_arm is None:
                 # No objects found :(
                 self.publish_result('No objects found that we need :(')
+                return
         self.publish_result('Great success!')
         
     def reset_collision_map(self):
@@ -284,12 +341,15 @@ class FakeMarkerServer():
             resp = self.grasp_check(arm)
             if resp.isGrasping is True:
                 self.publish_feedback('Object was grasped')
-                # move the arm to the side
-                if self.move_arm_to_side(options.arm_selection):
-                    return options.arm_selection
-                else:
+                backup_goal = BackupGoal()
+                self.backup.send_goal_and_wait(backup_goal)
+                res = self.backup.get_result()
+                if not res.success:
+                    self.publish_feedback('Backup failed.')
                     return None
+                return options.arm_selection
             else:
+                self.move_arm_to_side(options.arm_selection)
                 return None
             
     def move_arm_to_side(self, arm_selection):
@@ -317,6 +377,105 @@ class FakeMarkerServer():
         else:
             self.publish_feedback('Arm move was successful')
             return True
+        
+    def place_object(self, obj_info_orig, arm_selection, pose):
+        #drive to the table
+        self.publish_feedback('Driving robot to table')
+        nav_goal = navigateGoal('Dining Table Nav', True)
+        self.nav.send_goal_and_wait(nav_goal)
+        res = self.nav.get_result()
+        if not res.success:
+            self.publish_feedback('Table alignment failed.')
+            return False
+        self.publish_feedback('Aligned robot to table')
+        self.reset_collision_map()
+        self.publish_feedback('Attempting to place the object')
+        # make a copy
+        obj_info = copy.deepcopy(obj_info_orig)
+        obj = obj_info.obj
+        goal = PlaceGoal()
+        # set the arm
+        if arm_selection is 0:  
+            goal.arm_name = 'right_arm'
+        else:
+            goal.arm_name = 'left_arm'
+        # rotate and "gu-chunk"
+        orig_z = pose.position.z
+        pose.orientation.x = 0
+        pose.orientation.y = 0
+        goal.place_locations = []
+        for x in range(0, 10):
+            pose.position.x = pose.position.x + ((x - 5) * 0.0025)
+            for y in range(0, 10):
+                pose.position.y = pose.position.y + ((y - 5) * 0.0025)
+                # 'i' is for some rotations
+                for i in range(0, 10):
+                    rads = (pi * (i/10.0))
+                    pose.orientation.z = sin(-rads/2.0)
+                    pose.orientation.w = cos(-rads/2.0);
+                    # 'j' is for the 'z' height
+                    for j in range (0, 6):
+                        pose.position.z = orig_z + (j * 0.0025)
+                        pose_mat = pose_to_mat(pose)
+                        to_base_link_mat = pose_mat * obj_info.obj_origin_to_bounding_box
+                        grasp_mat = pose_to_mat(obj_info.grasp.grasp_pose.pose)
+                        gripper_mat = to_base_link_mat * grasp_mat
+                        gripper_pose = stamp_pose(mat_to_pose(gripper_mat), 'base_link')
+                        goal.place_locations.append(gripper_pose)
+        # use the identity as the grasp
+        obj_info.grasp.grasp_pose.pose = Pose()
+        obj_info.grasp.grasp_pose.pose.orientation.w = 1
+        goal.grasp = obj_info.grasp
+        goal.desired_retreat_distance = 0.1
+        goal.min_retreat_distance = 0.05
+        # set the approach
+        goal.approach = GripperTranslation()
+        goal.approach.desired_distance = .1
+        goal.approach.min_distance = 0.05
+        goal.approach.direction = create_vector3_stamped([0. , 0. , -1.], 'base_link')
+        # set the collision info
+        goal.collision_object_name = obj.collision_name
+        goal.collision_support_surface_name = 'table'
+        goal.place_padding = 0.02
+        goal.use_reactive_place = False
+        # send the goal
+        self.place.send_goal(goal)
+        # wait for result
+        finished_within_time = self.place.wait_for_result(rospy.Duration(240))
+        if not finished_within_time:
+            self.place.cancel_goal()
+            return False
+        # check the result
+        res = self.place.get_result()
+        if res.manipulation_result.value == -6 or res.manipulation_result.value == 1:
+            self.move_arm_to_side(arm_selection)
+            return True
+        else:
+            return False
+
+    def create_object_info(self, obj):
+        # get the pose
+        pose_stamped = obj.potential_models[0].pose
+        # change the frame
+        obj_frame_pose_stamped = change_pose_stamped_frame(self.tf_listener, pose_stamped, obj.reference_frame_id)
+        return ObjectInfo(obj, obj_frame_pose_stamped, self.tf_listener)
+        
+        
+class ObjectInfo():
+    def __init__(self, obj, pose, tf_listener):
+        # the original GraspableObject message
+        self.obj = obj
+        # the original pose on the table when detected
+        self.pose = pose    
+        # the Grasp object returned by the Pickup service
+        self.grasp = None
+        # where it was grasped, once it is grasped
+        self.grasp_pose = None
+        # convert to base link pose
+        to_base_link = get_transform(tf_listener, obj.cluster.header.frame_id, 'base_link')
+        pose_mat = pose_to_mat(pose.pose)
+        # object to bounding box transform
+        self.obj_origin_to_bounding_box = pose_mat**-1 * to_base_link    
 
 if __name__ == '__main__':    
     rospy.init_node('fake_object_markers')

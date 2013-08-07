@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
 
+//double height = 0.9144;
 double height = 0.7366;
 
 double width = 0.7366;

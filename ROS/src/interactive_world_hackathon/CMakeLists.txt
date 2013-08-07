@@ -66,7 +66,7 @@ add_dependencies(create_table ${PROJECT_NAME}_gencpp)
 ## Install ##
 #############
 
-install(PROGRAMS scripts/interactive_world_hackathon_server.py scripts/fake_object_markers.py
+install(PROGRAMS scripts/fake_object_markers.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
