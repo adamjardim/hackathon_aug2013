@@ -146,7 +146,6 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 		acTuckArms.sendGoal(armUntuckGoal);
 		acMoveTorso.sendGoal(torsoGoal);
 		acTuckArms.waitForResult(ros::Duration(20));
-		acMoveTorso.waitForResult(ros::Duration(20));
 		
 		if (goal->align)
 		{
