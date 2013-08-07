@@ -13,7 +13,8 @@ retrieveMedicine::retrieveMedicine(string name) :
 	acSegment("/object_detection_user_command", true),
 	acTuckArms("/tuck_arms", true),
 	asNavigate(n, name, boost::bind(&retrieveMedicine::executeNavigate, this, _1), false),
-actionName(name)
+	asHandoff(n, name, boost::bind(&retrieveMedicine::executeHandoff, this, _1), false),
+	actionName(name)
 {
 	ROS_INFO("Waiting for move_base action server...");
 	acMoveBase.waitForServer();
@@ -43,11 +44,17 @@ actionName(name)
 	acMoveTorso.waitForServer();
 	ROS_INFO("Finished waiting for torso action server.");
 
-    asNavigate.start();
+	asNavigate.start();
 
+<<<<<<< HEAD
 	baseCommandPublisher = n.advertise<geometry_msgs::Twist>("/base_controller/command", -1);
 
     position_client = n.serviceClient<position_server::GetPosition>("position_server/get_position");
+=======
+	asHandoff.start();
+
+	position_client = n.serviceClient<position_server::GetPosition>("position_server/get_position");
+>>>>>>> 0c16d3244b7873440442abb85628fe124c69a4d7
     
     //Define arm joint positions
 	string rightJoints[] = {"r_shoulder_pan_joint", "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint", "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint"};
@@ -58,8 +65,16 @@ actionName(name)
 	double rightSidePos[] = {-2.115, 0.0, -1.64, -2.07, -1.64, -1.680, 1.398};
 	leftArmSidePosition.assign(leftSidePos, leftSidePos + 7);
 	rightArmSidePosition.assign(rightSidePos, rightSidePos + 7);
+<<<<<<< HEAD
 	
 	basePoseSubscriber = n.subscribe("/robot_pose", 1, &retrieveMedicine::basePoseCallback, this);
+=======
+
+	double leftHandoffPos[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+	double rightHandoffPos[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+	leftArmHandoffPosition.assign(leftHandoffPos, leftHandoffPos + 7);
+	rightArmHandoffPosition.assign(rightHandoffPos, rightHandoffPos + 7);
+>>>>>>> 0c16d3244b7873440442abb85628fe124c69a4d7
 }
 
 void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal)
@@ -152,6 +167,7 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 				ROS_INFO("Invalid task name, action could not finish");
 				asNavigate.setPreempted();
 				return;
+<<<<<<< HEAD
 			}
 			
 			//Align to table with lower-level control
@@ -256,6 +272,9 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 			
 				r.sleep();
 			}
+=======
+			}		
+>>>>>>> 0c16d3244b7873440442abb85628fe124c69a4d7
 			
 			ROS_INFO("%s: Succeeded complete", actionName.c_str());
 			asNavigateResult.result_msg = "Finished";
@@ -278,6 +297,7 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 	
 }
 
+<<<<<<< HEAD
 void retrieveMedicine::basePoseCallback(const geometry_msgs::Pose& newPose)
 {
 	basePose.position.x = newPose.position.x;
@@ -287,6 +307,34 @@ void retrieveMedicine::basePoseCallback(const geometry_msgs::Pose& newPose)
 	basePose.orientation.y = newPose.orientation.y;
 	basePose.orientation.z = newPose.orientation.z;
 	basePose.orientation.w = newPose.orientation.w;
+=======
+void retrieveMedicine::executeHandoff(const retrieve_medicine::handoffGoalConstPtr& goal)
+{
+	ROS_INFO("Goal task name: %s", goal->taskName.c_str());
+	
+	//Handoff arms to the person
+	pr2_controllers_msgs::JointTrajectoryGoal leftArmGoal;
+	leftArmGoal.trajectory.joint_names = leftArmJointNames;
+	trajectory_msgs::JointTrajectoryPoint leftHandoffPoint;
+	leftHandoffPoint.positions = leftArmHandoffPosition;
+	leftHandoffPoint.time_from_start = ros::Duration(3);
+	leftArmGoal.trajectory.points.push_back(leftHandoffPoint);
+
+	pr2_controllers_msgs::JointTrajectoryGoal rightArmGoal;
+	rightArmGoal.trajectory.joint_names = rightArmJointNames;
+	trajectory_msgs::JointTrajectoryPoint rightHandoffPoint;
+	rightHandoffPoint.positions = rightArmHandoffPosition;
+	rightHandoffPoint.time_from_start = ros::Duration(3);
+	rightArmGoal.trajectory.points.push_back(rightHandoffPoint);
+
+	acLeftArm.sendGoal(leftArmGoal);
+	acRightArm.sendGoal(rightArmGoal);
+	acLeftArm.waitForResult(ros::Duration(6));
+	acRightArm.waitForResult(ros::Duration(6));
+
+	//
+	
+>>>>>>> 0c16d3244b7873440442abb85628fe124c69a4d7
 }
 
 int main(int argc, char **argv)
