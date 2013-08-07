@@ -52,13 +52,7 @@ class FakeMarkerServer():
         self.objects.append(18808)
         self.objects.append(18744)
         self.objects.append(18799)
-        pose = Pose()
-        pose.position.z = TABLE_HEIGHT
-        pose.position.x = OFFSET * 3
-        pose.position.y = -0.25
-        for obj_id in self.objects:
-            self.create_mesh(obj_id, pose)
-            pose.position.y = pose.position.y + 0.25
+        self.reset_objects()
         # check for saved templates
         try:
             self.templates = pickle.load(open(SAVE_FILE, 'rb'))
@@ -152,6 +146,7 @@ class FakeMarkerServer():
             self.templates[req.name] = to_save
             # PICKLE IT!
             pickle.dump(self.templates, open(SAVE_FILE, 'wb'))
+            self.reset_objects()
             return SaveTemplateResponse(True)
         else:
             return SaveTemplateResponse(False)
@@ -227,6 +222,15 @@ class FakeMarkerServer():
         self.imgui.send_goal(goal)
         self.imgui.wait_for_result()
         self.publish_feedback('Collision map reset')
+    
+    def reset_objects(self):
+        pose = Pose()
+        pose.position.z = TABLE_HEIGHT
+        pose.position.x = OFFSET * 3
+        pose.position.y = -0.25
+        for obj_id in self.objects:
+            self.create_mesh(obj_id, pose)
+            pose.position.y = pose.position.y + 0.25
         
     def pickup(self, obj):
         # start by picking up the object

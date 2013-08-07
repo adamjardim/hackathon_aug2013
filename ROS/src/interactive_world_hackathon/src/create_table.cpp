@@ -22,7 +22,7 @@ visualization_msgs::Marker create_leg(int ln)
   marker.header.stamp = ros::Time::now();
   marker.ns = "table_markers";
   marker.id = ln;
-  marker.type = visualization_msgs::Marker::CYLINDER;
+  marker.type = visualization_msgs::Marker::CUBE;
   marker.action = visualization_msgs::Marker::ADD;
 
   switch(ln)
@@ -69,7 +69,7 @@ int main( int argc, char** argv )
 {
   ros::init(argc, argv, "create_table");
   ros::NodeHandle n;
-  ros::Rate r(10);
+  ros::Rate r(.2);
   ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("create_table_marker", 1);
   ros::Publisher leg1_pub = n.advertise<visualization_msgs::Marker>("leg1_marker", 1);
   ros::Publisher leg2_pub = n.advertise<visualization_msgs::Marker>("leg2_marker", 1);
@@ -112,5 +112,7 @@ int main( int argc, char** argv )
     leg2_pub.publish(create_leg(1));
     leg3_pub.publish(create_leg(2));
     leg4_pub.publish(create_leg(3));
+
+    r.sleep();
   }
 }
