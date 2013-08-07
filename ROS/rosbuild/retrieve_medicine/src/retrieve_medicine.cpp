@@ -127,6 +127,7 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 	{
 		acMoveBase.sendGoal(moveGoal);
 		acMoveBase.waitForResult(ros::Duration(15.0));
+		dstToGoal = sqrt(pow(basePose.position.x - target.pose.position.x, 2) + pow(basePose.position.y - target.pose.position.y, 2));
 	}
 
 	if (dstToGoal < navSuccessThreshold || acMoveBase.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
@@ -317,7 +318,7 @@ void retrieveMedicine::executeBackup(const retrieve_medicine::BackupGoalConstPtr
 	for (int i = 0; i < 120; i ++)
 	{
 		geometry_msgs::Twist baseCommand;
-		baseCommand.linear.x = -0.5;
+		baseCommand.linear.x = -0.2;
 		baseCommand.linear.y = 0;
 		baseCommand.angular.z = 0;
 		baseCommandPublisher.publish(baseCommand);
@@ -343,6 +344,11 @@ void retrieveMedicine::executeBackup(const retrieve_medicine::BackupGoalConstPtr
 	armTuckGoal.tuck_right = true;
 	acTuckArms.sendGoal(armTuckGoal);
 	acTuckArms.waitForResult(ros::Duration(15));
+	
+	ROS_INFO("Backup action succeeded");
+	asBackupResult.result_msg = "Backup succeeded";
+	asBackupResult.success = true;
+	asBackup.setSucceeded(asBackupResult);
 }
 
 void retrieveMedicine::executePickupAll(const retrieve_medicine::PickupAllGoalConstPtr& goal)
