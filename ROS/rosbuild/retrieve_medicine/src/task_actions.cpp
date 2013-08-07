@@ -16,7 +16,8 @@ taskActions::taskActions() :
 	asNavigate(n, "navigate_action", boost::bind(&taskActions::executeNavigate, this, _1), false),
 	asHandoff(n, "handoff_action", boost::bind(&taskActions::executeHandoff, this, _1), false),
 	asBackup(n, "backup_action", boost::bind(&taskActions::executeBackup, this, _1), false),
-	asPickupAll(n, "pickup_all_action", boost::bind(&taskActions::executePickupAll, this, _1), false)
+	asPickupAll(n, "pickup_all_action", boost::bind(&taskActions::executePickupAll, this, _1), false),
+	asRelease(n, "release_action", boost::bind(&taskActions::executeRelease, this, _1), false)
 {
 	ROS_INFO("Waiting for move_base action server...");
 	acMoveBase.waitForServer();
@@ -401,7 +402,6 @@ void taskActions::basePoseCallback(const geometry_msgs::Pose& newPose)
 
 void taskActions::executeHandoff(const retrieve_medicine::handoffGoalConstPtr& goal)
 {
-	ROS_INFO("Goal task name: %s", goal->taskName.c_str());
 	
 	//Handoff arms to the person
 	pr2_controllers_msgs::JointTrajectoryGoal leftArmGoal;
@@ -424,6 +424,74 @@ void taskActions::executeHandoff(const retrieve_medicine::handoffGoalConstPtr& g
 	acRightArm.waitForResult(ros::Duration(6));
 
 	//
+}
+
+void taskActions::executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& goal)
+{
+	//listen to transform coordinates and detect the change
+	tf::TransformListener listener;
+	float preLeftGripperX, preLeftGripperY, preRightGripperX, preRightGripperY;
+	int count = 0;
+  	
+	preLeftGripperX = 0.0;
+	preLeftGripperY = 0.0;
+	preRightGripperX = 0.0;
+	preRightGripperY = 0.0;
+
+	bool lflag, rflag;
+	lflag = false;
+	rflag = false;
+
+	while (1){
+		count++;
+	        tf::StampedTransform leftGripperTransform;
+	        tf::StampedTransform rightGripperTransorm;
+		try{
+      			listener.lookupTransform("/base_link", "/l_gripper_palm_link",  
+                            			   ros::Time(0), leftGripperTransform);
+			listener.lookupTransform("/base_link", "/r_gripper_palm_link",  
+                              			 ros::Time(0), rightGripperTransorm);
+		    }
+    		catch (tf::TransformException ex){
+		         ROS_ERROR("%s",ex.what());
+                    }
+
+	  //open left gripper if the coordinate frame of left gripper changes
+	  if( !lflag && count > 10 && fabs( leftGripperTransform.getOrigin().x() - preLeftGripperX ) > 0.001 && fabs( leftGripperTransform.getOrigin().y() - preLeftGripperY ) > 0.001 )
+	  {
+		pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
+		openGripper.command.position = 0.08;
+		openGripper.command.max_effort = -1.0;
+		acLeftGripper.sendGoal(openGripper);
+		acLeftGripper.waitForResult(ros::Duration(3));
+		lflag = true;
+	  }
+
+	  //open right gripper if the coordinate frame of right gripper changes
+          if( !rflag && count > 10 && fabs( rightGripperTransorm.getOrigin().x() - preRightGripperX ) > 0.001 && fabs( rightGripperTransorm.getOrigin().y() - preRightGripperY ) > 0.001 )
+	  {
+		pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
+		openGripper.command.position = 0.08;
+		openGripper.command.max_effort = -1.0;
+		acRightGripper.sendGoal(openGripper);
+		acRightGripper.waitForResult(ros::Duration(3));
+		rflag = true;
+	  }
+
+	  if( lflag && rflag) break;
+	  
+          preLeftGripperX = leftGripperTransform.getOrigin().x();
+	  preLeftGripperY = leftGripperTransform.getOrigin().y();
+	  preRightGripperX = rightGripperTransorm.getOrigin().x();
+	  preRightGripperY = rightGripperTransorm.getOrigin().y();
+	  
+	  
+	}
+
+	ROS_INFO("Release action succeeded");
+	asReleaseResult.result_msg = "Release succeeded";
+	asReleaseResult.success = true;
+	asRelease.setSucceeded(asReleaseResult);
 }
 
 int main(int argc, char **argv)
