@@ -19,6 +19,7 @@
 #include <nav_msgs/Odometry.h>
 #include <position_server/GetPosition.h>
 #include <tf/tf.h>
+#include <pr2_object_manipulation_msgs/IMGUIAction.h>
 //#include <pr2_object_manipulation_msgs/IMGUICommand.h>
 //#include <pr2_object_manipulation_msgs/IMGUIOptions.h>
 
@@ -56,7 +57,7 @@ public:
 	actionlib::SimpleActionClient<pr2_controllers_msgs::Pr2GripperCommandAction> acRightGripper;
 	actionlib::SimpleActionClient<pr2_interactive_object_detection::UserCommandAction> acSegment;
 	actionlib::SimpleActionClient<pr2_common_action_msgs::TuckArmsAction> acTuckArms;
-	//actionlib::SimpleActionClient<pr2_object_manipulation_msgs::IMGUI
+	actionlib::SimpleActionClient<pr2_object_manipulation_msgs::IMGUIAction> acIMGUI;
 
 	//Action servers
 	actionlib::SimpleActionServer<retrieve_medicine::navigateAction> asNavigate;
