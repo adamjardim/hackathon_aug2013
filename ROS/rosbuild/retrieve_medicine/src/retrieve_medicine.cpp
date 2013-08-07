@@ -45,16 +45,11 @@ retrieveMedicine::retrieveMedicine(string name) :
 	ROS_INFO("Finished waiting for torso action server.");
 
 	asNavigate.start();
+	asHandoff.start();
 
-<<<<<<< HEAD
 	baseCommandPublisher = n.advertise<geometry_msgs::Twist>("/base_controller/command", -1);
 
     position_client = n.serviceClient<position_server::GetPosition>("position_server/get_position");
-=======
-	asHandoff.start();
-
-	position_client = n.serviceClient<position_server::GetPosition>("position_server/get_position");
->>>>>>> 0c16d3244b7873440442abb85628fe124c69a4d7
     
     //Define arm joint positions
 	string rightJoints[] = {"r_shoulder_pan_joint", "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint", "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint"};
@@ -65,16 +60,12 @@ retrieveMedicine::retrieveMedicine(string name) :
 	double rightSidePos[] = {-2.115, 0.0, -1.64, -2.07, -1.64, -1.680, 1.398};
 	leftArmSidePosition.assign(leftSidePos, leftSidePos + 7);
 	rightArmSidePosition.assign(rightSidePos, rightSidePos + 7);
-<<<<<<< HEAD
-	
-	basePoseSubscriber = n.subscribe("/robot_pose", 1, &retrieveMedicine::basePoseCallback, this);
-=======
-
 	double leftHandoffPos[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 	double rightHandoffPos[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 	leftArmHandoffPosition.assign(leftHandoffPos, leftHandoffPos + 7);
 	rightArmHandoffPosition.assign(rightHandoffPos, rightHandoffPos + 7);
->>>>>>> 0c16d3244b7873440442abb85628fe124c69a4d7
+	
+	basePoseSubscriber = n.subscribe("/robot_pose", 1, &retrieveMedicine::basePoseCallback, this);
 }
 
 void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal)
@@ -167,7 +158,6 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 				ROS_INFO("Invalid task name, action could not finish");
 				asNavigate.setPreempted();
 				return;
-<<<<<<< HEAD
 			}
 			
 			//Align to table with lower-level control
@@ -271,10 +261,7 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 				baseCommandPublisher.publish(baseCommand);
 			
 				r.sleep();
-			}
-=======
 			}		
->>>>>>> 0c16d3244b7873440442abb85628fe124c69a4d7
 			
 			ROS_INFO("%s: Succeeded complete", actionName.c_str());
 			asNavigateResult.result_msg = "Finished";
@@ -297,7 +284,6 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 	
 }
 
-<<<<<<< HEAD
 void retrieveMedicine::basePoseCallback(const geometry_msgs::Pose& newPose)
 {
 	basePose.position.x = newPose.position.x;
@@ -307,7 +293,8 @@ void retrieveMedicine::basePoseCallback(const geometry_msgs::Pose& newPose)
 	basePose.orientation.y = newPose.orientation.y;
 	basePose.orientation.z = newPose.orientation.z;
 	basePose.orientation.w = newPose.orientation.w;
-=======
+}
+
 void retrieveMedicine::executeHandoff(const retrieve_medicine::handoffGoalConstPtr& goal)
 {
 	ROS_INFO("Goal task name: %s", goal->taskName.c_str());
@@ -333,8 +320,6 @@ void retrieveMedicine::executeHandoff(const retrieve_medicine::handoffGoalConstP
 	acRightArm.waitForResult(ros::Duration(6));
 
 	//
-	
->>>>>>> 0c16d3244b7873440442abb85628fe124c69a4d7
 }
 
 int main(int argc, char **argv)
