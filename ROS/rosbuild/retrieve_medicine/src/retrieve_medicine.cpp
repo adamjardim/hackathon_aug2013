@@ -47,6 +47,8 @@ retrieveMedicine::retrieveMedicine(string name) :
 
 	asNavigate.start();
 	asHandoff.start();
+  asBackup.start();
+  asPickupAll.start();
 
 	baseCommandPublisher = n.advertise<geometry_msgs::Twist>("/base_controller/command", -1);
 
