@@ -1,0 +1,10 @@
+<launch>		
+	<!-- Launch position server -->
+	<include file="$(find position_server)/launch/position_server.launch"></include>
+
+	<!-- Launch robot pose publisher -->
+	<node pkg="robot_pose_publisher" type="robot_pose_publisher" name="robot_pose_publisher />
+	
+	<!-- Launch retrieve medicine -->
+	<node pkg="retrieve_medicine" type="retrieve_medicine" name="retrieve_medicine" />
+</launch>
