@@ -6,5 +6,5 @@
 	<node pkg="robot_pose_publisher" type="robot_pose_publisher" name="robot_pose_publisher />
 	
 	<!-- Launch retrieve medicine -->
-	<node pkg="retrieve_medicine" type="retrieve_medicine" name="retrieve_medicine" />
+	<node pkg="retrieve_medicine" type="task_actions" name="task_actions" />
 </launch>

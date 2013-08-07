@@ -37,7 +37,7 @@ struct vec3
 	float x, y, t;
 };
 
-class retrieveMedicine
+class taskActions
 {
 public: 
     ros::NodeHandle n;
@@ -89,7 +89,7 @@ public:
 	
 	geometry_msgs::Pose basePose;
 
-	retrieveMedicine(std::string name);
+	taskActions();
 
     void executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal);
     

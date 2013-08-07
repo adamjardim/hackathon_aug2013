@@ -1,8 +1,8 @@
-#include <retrieve_medicine/retrieve_medicine.h>
+#include <retrieve_medicine/task_actions.h>
 
 using namespace std;
 
-retrieveMedicine::retrieveMedicine(string name) : 
+taskActions::taskActions() : 
 	acMoveBase("/move_base", true),
 	acMoveHead("/head_traj_controller/point_head_action", true),
 	acMoveTorso("/torso_controller/position_joint_action", true),
@@ -13,10 +13,10 @@ retrieveMedicine::retrieveMedicine(string name) :
 	acSegment("/object_detection_user_command", true),
 	acTuckArms("/tuck_arms", true),
 	acIMGUI("/imgui_action", true),
-	asNavigate(n, name, boost::bind(&retrieveMedicine::executeNavigate, this, _1), false),
-	asHandoff(n, "handoff_action", boost::bind(&retrieveMedicine::executeHandoff, this, _1), false),
-	asBackup(n, "backup_action", boost::bind(&retrieveMedicine::executeBackup, this, _1), false),
-	asPickupAll(n, "pickup_all_action", boost::bind(&retrieveMedicine::executePickupAll, this, _1), false)
+	asNavigate(n, "navigate_action", boost::bind(&taskActions::executeNavigate, this, _1), false),
+	asHandoff(n, "handoff_action", boost::bind(&taskActions::executeHandoff, this, _1), false),
+	asBackup(n, "backup_action", boost::bind(&taskActions::executeBackup, this, _1), false),
+	asPickupAll(n, "pickup_all_action", boost::bind(&taskActions::executePickupAll, this, _1), false)
 {
 	ROS_INFO("Waiting for move_base action server...");
 	acMoveBase.waitForServer();
@@ -73,10 +73,10 @@ retrieveMedicine::retrieveMedicine(string name) :
 	leftArmHandoffPosition.assign(leftHandoffPos, leftHandoffPos + 7);
 	rightArmHandoffPosition.assign(rightHandoffPos, rightHandoffPos + 7);
 	
-	basePoseSubscriber = n.subscribe("/robot_pose", 1, &retrieveMedicine::basePoseCallback, this);
+	basePoseSubscriber = n.subscribe("/robot_pose", 1, &taskActions::basePoseCallback, this);
 }
 
-void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal)
+void taskActions::executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal)
 {
 	ROS_INFO("Goal task name: %s", goal->taskName.c_str());
 	
@@ -318,7 +318,7 @@ void retrieveMedicine::executeNavigate(const retrieve_medicine::navigateGoalCons
 	}
 }
 
-void retrieveMedicine::executeBackup(const retrieve_medicine::BackupGoalConstPtr& goal)
+void taskActions::executeBackup(const retrieve_medicine::BackupGoalConstPtr& goal)
 {
 	//backup 1 meter
 	ros::Rate r(60);
@@ -359,7 +359,7 @@ void retrieveMedicine::executeBackup(const retrieve_medicine::BackupGoalConstPtr
 	asBackup.setSucceeded(asBackupResult);
 }
 
-void retrieveMedicine::executePickupAll(const retrieve_medicine::PickupAllGoalConstPtr& goal)
+void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPtr& goal)
 {
 	//open grippers
 	pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
@@ -388,7 +388,7 @@ void retrieveMedicine::executePickupAll(const retrieve_medicine::PickupAllGoalCo
 	imguiOptions.grasp_selection = 1;
 }
 
-void retrieveMedicine::basePoseCallback(const geometry_msgs::Pose& newPose)
+void taskActions::basePoseCallback(const geometry_msgs::Pose& newPose)
 {
 	basePose.position.x = newPose.position.x;
 	basePose.position.y = newPose.position.y;
@@ -399,7 +399,7 @@ void retrieveMedicine::basePoseCallback(const geometry_msgs::Pose& newPose)
 	basePose.orientation.w = newPose.orientation.w;
 }
 
-void retrieveMedicine::executeHandoff(const retrieve_medicine::handoffGoalConstPtr& goal)
+void taskActions::executeHandoff(const retrieve_medicine::handoffGoalConstPtr& goal)
 {
 	ROS_INFO("Goal task name: %s", goal->taskName.c_str());
 	
@@ -428,9 +428,9 @@ void retrieveMedicine::executeHandoff(const retrieve_medicine::handoffGoalConstP
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "retrieve_medicine");
+    ros::init(argc, argv, "task_actions");
 
-    retrieveMedicine rm("navigate_action");
+    taskActions rm;
 
     ros::spin();    
 
