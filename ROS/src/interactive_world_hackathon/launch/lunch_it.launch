@@ -1,0 +1,6 @@
+<launch>
+	<node pkg="interactive_world_hackathon" type="tts" name="tts" />
+	<node pkg="interactive_world_hackathon" type="create_table" name="create_table" output="screen" />
+	<node pkg="interactive_world_hackathon" type="fake_object_markers.py" name="fake_object_markers" output="screen" />
+	<node pkg="interactive_world_hackathon" type="grasp_verification" name="grasp_verification" output="screen" />
+</launch>
