@@ -103,7 +103,7 @@ class FakeMarkerServer():
         for obj in self.templates.keys():
             temp_list.append(str(obj))
         #print temp_list
-       return PrintTemplatesResponse(temp_list)
+        return PrintTemplatesResponse(temp_list)
         
     def store_grasp(self, msg):
         self.last_grasp = msg.result.grasp
