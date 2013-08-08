@@ -25,6 +25,7 @@
 std::vector<hackathon_scheduler::Event> schedule;
 ros::Publisher* taskStatusPublisher;
 std::string taskName="";
+std::string startTime;
 
 bool medicine_needs_teleop=false;
 bool should_restart_medicine=false;
@@ -196,6 +197,7 @@ void dummyActionDoneCb(const actionlib::SimpleClientGoalState& state,
 
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
+  status.startTime=startTime;
 
   if (state==actionlib::SimpleClientGoalState::SUCCEEDED) {
     status.message=status.status="success";
@@ -213,6 +215,7 @@ void dummyActionActiveCb()
   ROS_INFO("Dummy action just went active");
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
+  status.startTime=startTime;
   status.status="executing";
   status.message="starting dummy task";
   taskStatusPublisher->publish(status);
@@ -224,6 +227,7 @@ void dummyActionFeedbackCb(const hackathon_scheduler::countFeedbackConstPtr& fee
   ROS_INFO("Got dummy action feedback: %d",feedback->current);
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
+  status.startTime=startTime;
   status.status="executing";
   char buf[40];
   sprintf(buf,"dummy task count = %d",feedback->current);
@@ -258,6 +262,7 @@ void medicineActionDoneCb(const actionlib::SimpleClientGoalState& state,
 
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
+  status.startTime=startTime;
   status.message=result->result_msg;
 
   if (state==actionlib::SimpleClientGoalState::SUCCEEDED) {
@@ -282,6 +287,7 @@ void medicineActionActiveCb()
   ROS_INFO("Retrieve Medicine action just went active");
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
+  status.startTime=startTime;
   status.status="executing";
   status.message="starting to Retrieve Medicine";
   taskStatusPublisher->publish(status);
@@ -293,6 +299,7 @@ void medicineActionFeedbackCb(const retrieve_medicine::RetrieveMedicineFeedbackC
   ROS_INFO("Got retrieve medicine action feedback: '%s'",feedback->feedback_msg.c_str());
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
+  status.startTime=startTime;
   status.status="executing";
   status.message=feedback->feedback_msg;
   taskStatusPublisher->publish(status);
@@ -336,6 +343,7 @@ void lunchActionDoneCb(const actionlib::SimpleClientGoalState& state,
 
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
+  status.startTime=startTime;
   status.message=result->msg;
 
   if (state==actionlib::SimpleClientGoalState::SUCCEEDED) {
@@ -354,6 +362,7 @@ void lunchActionActiveCb()
   ROS_INFO("Lunch action just went active");
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
+  status.startTime=startTime;
   status.status="executing";
   status.message="starting lunch task";
   taskStatusPublisher->publish(status);
@@ -364,6 +373,7 @@ void lunchActionFeedbackCb(const interactive_world_hackathon::LoadFeedbackConstP
 {
   ROS_INFO("Got lunch action feedback: %s",feedback->feed.c_str());
   hackathon_scheduler::TaskStatus status;
+  status.startTime=startTime;
   status.taskName=taskName;
   status.status="executing";
   status.message=feedback->feed;
@@ -385,6 +395,7 @@ void get_lunch(std::string template_name) {
 
 void executeTask(hackathon_scheduler::Event task) {
   taskName=task.taskName;
+  startTime=task.startTime;
   if (strstr(task.taskType.c_str(),"medicine")) {
     get_medicine();
   }

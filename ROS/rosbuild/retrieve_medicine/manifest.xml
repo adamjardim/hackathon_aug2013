@@ -18,6 +18,7 @@
 	<depend package="pr2_controllers_msgs"/>
 	<depend package="pr2_interactive_object_detection"/>
 	<depend package="pr2_object_manipulation_msgs"/>
+	<depend package="manipulation_msgs"/>
 	<depend package="trajectory_msgs"/>
 
 	<depend package="position_server"/>
