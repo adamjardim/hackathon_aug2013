@@ -13,6 +13,7 @@
 #include <retrieve_medicine/ReleaseAction.h>
 #include <pr2_controllers_msgs/SingleJointPositionAction.h>
 #include <pr2_interactive_object_detection/UserCommandAction.h>
+#include <manipulation_msgs/GraspableObjectList.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -46,6 +47,7 @@ public:
     
     ros::Publisher baseCommandPublisher;
     ros::Subscriber basePoseSubscriber;
+    ros::Subscriber objectSubscriber;
 
 	ros::ServiceClient position_client;
 
@@ -94,10 +96,13 @@ public:
 	std::vector<std::string> rightArmJointNames;
 	
 	geometry_msgs::Pose basePose;
+	
+	//segmented objects
+	manipulation_msgs::GraspableObjectList objectList;
 
 	taskActions();
 
-        void executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal);
+    void executeNavigate(const retrieve_medicine::navigateGoalConstPtr& goal);
     
 	void executeBackup(const retrieve_medicine::BackupGoalConstPtr& goal);
     
@@ -108,5 +113,7 @@ public:
 	void executeHandoff(const retrieve_medicine::handoffGoalConstPtr& goal);
 
 	void executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& goal);
+	
+	void objectCallback(const manipulation_msgs::GraspableObjectList& objects);
 };
 
