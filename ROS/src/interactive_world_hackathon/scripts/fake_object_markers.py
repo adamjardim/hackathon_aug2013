@@ -19,7 +19,7 @@ import copy
 import pickle
 import actionlib
 from interactive_world_hackathon.msg import LoadAction, LoadFeedback, LoadResult
-from interactive_world_hackathon.srv import GraspCheck
+from interactive_world_hackathon.srv import GraspCheck, Speak
 import time
 from pr2_interactive_object_detection.msg import UserCommandAction, UserCommandGoal
 from manipulation_msgs.msg import GraspableObject, GraspableObjectList
@@ -48,6 +48,8 @@ class FakeMarkerServer():
         # create a simple TF listener
         self.tf_listener = tf.TransformListener()
         self.grasp_check = rospy.ServiceProxy('/interactive_world_hackathon/grasp_check', GraspCheck)
+        self.speak = rospy.ServiceProxy('/tts/speak', Speak)
+        self.play = rospy.ServiceProxy('/tts/play', Speak)
         # create the nav client
         self.nav = actionlib.SimpleActionClient('navigate_action', navigateAction)
         self.nav.wait_for_server()
@@ -91,6 +93,7 @@ class FakeMarkerServer():
         except:
             self.templates = dict()
             rospy.loginfo('New template file started.')
+        self.play('/home/rctoris/wav/c3po.wav')
 
     def get_templates(self, req):
         temp_list = []
@@ -276,6 +279,7 @@ class FakeMarkerServer():
             return
         template = copy.deepcopy(self.templates[name])
         self.publish_feedback('Loaded template ' + name)
+        self.play('/home/rctoris/wav/help.wav')
         # look for any objects we need
         while len(template) is not 0:
             pickup_arm = None
@@ -316,6 +320,8 @@ class FakeMarkerServer():
                             self.publish_result('Place failed.')
                             return
                         self.publish_feedback('Placed the object!')
+                        if len(template) is not 1:
+                            self.play('/home/rctoris/wav/ill-be-back.wav')
                         # removes object from list of objects to pick up from template
                         template.remove(template_im)
             # if no objects are found...
@@ -324,6 +330,7 @@ class FakeMarkerServer():
                 self.publish_result('No objects found that we need :(')
                 return
         # We completed the task!
+        self.play('/home/rctoris/wav/down.wav')
         self.publish_result('Great success!')
         
     # resets collision map of world and rescan
@@ -372,6 +379,7 @@ class FakeMarkerServer():
         self.publish_feedback('Attempting to pick up')
         self.reset_collision_map()
         self.imgui.send_goal(goal)
+        self.play('/home/rctoris/wav/humnbehv.wav')
         self.imgui.wait_for_result()
         # check the result
         res = self.imgui.get_result()
@@ -444,6 +452,7 @@ class FakeMarkerServer():
         #drive to the table
         self.publish_feedback('Driving robot to table')
         nav_goal = navigateGoal('Dining Table Nav', True)
+        self.play('/home/rctoris/wav/run.wav')
         self.nav.send_goal_and_wait(nav_goal)
         res = self.nav.get_result()
         if not res.success:
