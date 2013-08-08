@@ -13,7 +13,7 @@ from geometry_msgs.msg import Pose
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
 from visualization_msgs.msg import Marker, InteractiveMarker, InteractiveMarkerControl, InteractiveMarkerFeedback
 from interactive_world_hackathon.srv import SaveTemplate, SaveTemplateResponse
-from interactive_world_hackathon.srv import PrintTemplates, PrintTemplateResponse
+from interactive_world_hackathon.srv import PrintTemplates, PrintTemplatesResponse
 from pr2_object_manipulation_msgs.msg import IMGUIAction, IMGUIOptions, IMGUIGoal
 import copy
 import pickle
@@ -92,15 +92,13 @@ class FakeMarkerServer():
             self.templates = dict()
             rospy.loginfo('New template file started.')
 
-    def get_templates(self):
+    def get_templates(self, req):
         temp_list = []
         if self.templates.keys() is None:
             self.publish_feedback('No templates')
             return
-        print 'Templates are: '
         for obj in self.templates.keys():
-            temp_list.append(obj)
-            print '\t' + obj
+            temp_list.append(str(obj))
         print temp_list
         PrintTemplatesResponse(temp_list)
         
