@@ -2,19 +2,16 @@
 #include <visualization_msgs/Marker.h>
 
 //double height = 0.9144;
-double height = 0.7366;
-
-double width = 0.7366;
-double depth = 1.2192;
-double offset = 0.381;
+double height = 0.7366; //height of the table along z-axis
+double width = 0.7366; //width of the table along y-axis
+double depth = 1.2192; //length of the table along x-axis (in front of the robot)
+double offset = 0.381; //x-distance offset from robot to table
 
 double legradius = 0.05;
 double colorr = 0.957;
 double colorg = 0.482;
 double colorb = 0.063;
 double colora = 0.66;
-
-
 
 visualization_msgs::Marker create_leg(int ln)
 {
@@ -28,19 +25,19 @@ visualization_msgs::Marker create_leg(int ln)
 
   switch(ln)
   {
-    case 0:
+    case 0: //position of leg 0
       marker.pose.position.x = offset + depth - legradius/2;
       marker.pose.position.y = -width/2 + legradius/2;
       break;
-    case 1:
+    case 1: //position of leg 1
       marker.pose.position.x = offset + depth - legradius/2;
       marker.pose.position.y = width/2 - legradius/2;
       break;
-    case 2:
+    case 2: //position of leg 2
       marker.pose.position.x = offset + legradius/2;
       marker.pose.position.y = -width/2 + legradius/2;
       break;
-    case 3:
+    case 3: //position of leg 3
       marker.pose.position.x = offset + legradius/2;
       marker.pose.position.y = width/2 - legradius/2;
       break;
@@ -70,7 +67,8 @@ int main( int argc, char** argv )
 {
   ros::init(argc, argv, "create_table");
   ros::NodeHandle n;
-  ros::Rate r(.2);
+  ros::Rate r(.2); //Updates once every 5 seconds
+  //Various table marker publishers for RMS visualizer
   ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("create_table_marker", 1);
   ros::Publisher leg1_pub = n.advertise<visualization_msgs::Marker>("leg1_marker", 1);
   ros::Publisher leg2_pub = n.advertise<visualization_msgs::Marker>("leg2_marker", 1);
@@ -106,9 +104,10 @@ int main( int argc, char** argv )
 
     marker.lifetime = ros::Duration();
 
-    // Publish the marker
+    // Publish the tabletop marker
     marker_pub.publish(marker);
 
+    // Publish the leg markers
     leg1_pub.publish(create_leg(0));
     leg2_pub.publish(create_leg(1));
     leg3_pub.publish(create_leg(2));
