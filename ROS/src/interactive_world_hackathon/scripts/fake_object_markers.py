@@ -36,6 +36,10 @@ DEPTH_END = 0.381
 WIDTH_START = -0.3175
 WIDTH_END = 0.3175
 
+OBJECT1 = 18808 # Campbell's travel soup cup
+OBJECT2 = 18744 # Soda can
+OBJECT3 = 18799 # Soup can
+
 SAVE_FILE = '/tmp/templates.r0b0t'
 
 class FakeMarkerServer():
@@ -46,6 +50,7 @@ class FakeMarkerServer():
         # create the nav client
         self.nav = actionlib.SimpleActionClient('navigate_action', navigateAction)
         self.nav.wait_for_server()
+        # create the backup client
         self.backup = actionlib.SimpleActionClient('backup_action', BackupAction)
         self.backup.wait_for_server()
         # create the place action client
@@ -72,9 +77,9 @@ class FakeMarkerServer():
         rospy.Subscriber('/object_manipulator/object_manipulator_pickup/result', PickupActionResult, self.store_grasp)
         self.last_grasp = None
         self.objects = []
-        self.objects.append(18808)
-        self.objects.append(18744)
-        self.objects.append(18799)
+        self.objects.append(OBJECT1)
+        self.objects.append(OBJECT2)
+        self.objects.append(OBJECT3)
         self.reset_objects()
         # check for saved templates
         try:
@@ -86,10 +91,13 @@ class FakeMarkerServer():
         
     def store_grasp(self, msg):
         self.last_grasp = msg.result.grasp
-            
+     
+    # Given a mesh_id creates a name with format 'object + mesh_id' 
+    # ex.)Given '1234', creates 'object_1234' name
     def create_name(self, mesh_id):
         return 'object_' + str(mesh_id)
-        
+       
+    # Creates a mesh of the given object with the given pose to be visualized by template maker 
     def create_mesh(self, mesh_id, pose):
         response = self.get_mesh(mesh_id)
         mesh = response.mesh
@@ -111,7 +119,11 @@ class FakeMarkerServer():
         self.server.insert(self.create_im(marker, pose, name), self.process_feedback)
         self.server.setCallback(name, self.release, InteractiveMarkerFeedback.MOUSE_UP)
         self.server.applyChanges()
-        
+    
+    # Creates an interactive marker 
+    # - at the given location and pose 
+    # - with a given name 
+    # - for given marker object        
     def create_im(self, marker, pose, name):
         # create the new interactive marker
         int_marker = InteractiveMarker()
@@ -133,9 +145,12 @@ class FakeMarkerServer():
     def process_feedback(self, feedback):
         self.last_feedback = feedback
         
+    # Returns true if given (x,y) coordinates are within "Graspable/Placeable(?)" range
     def check_pose(self, x, y):
         return x >= OFFSET + DEPTH_START and x <= OFFSET + DEPTH_END and y >= WIDTH_START and y <= WIDTH_END
 
+    # Checks position of hallucinated interactive markers
+    # Changes color and sets position when user releases mouse click (MOUSE_UP) on object
     def release(self, feedback):
         im = self.server.get(feedback.marker_name)
         # copy the mesh information
@@ -155,10 +170,13 @@ class FakeMarkerServer():
         self.server.insert(self.create_im(marker, feedback.pose, feedback.marker_name), self.process_feedback)
         self.server.setCallback(feedback.marker_name, self.release, InteractiveMarkerFeedback.MOUSE_UP)
         self.server.applyChanges()
-        
+    
+    # updates server    
     def update(self):
         self.server.applyChanges()
-        
+      
+    # **Run by save_template service**  
+    # Saves given template information to file location
     def save(self, req):
         # go through each object and check if they are in the valid range
         to_save = []
@@ -177,14 +195,17 @@ class FakeMarkerServer():
         else:
             return SaveTemplateResponse(False)
 
+    # Publishes feedback of current tasks
     def publish_feedback(self, msg):
         rospy.loginfo(msg)
         self.load_server.publish_feedback(LoadFeedback(msg))
 
+    # Publishes final result of action
     def publish_result(self, msg):
         rospy.loginfo(msg)
         self.load_server.set_succeeded(LoadResult(msg))
 
+    # Returns how many objects were recognized
     def proc_grasp_list(self, msg):
         objects = []
         # start by going through each
@@ -197,6 +218,8 @@ class FakeMarkerServer():
         rospy.loginfo('Found ' + str(len(objects)) + ' object(s).')
         self.recognition = objects
 
+    # Drives to and aligns with counter
+    # Segments objects
     def look_for_objects(self):
         self.publish_feedback('Driving robot to counter')
         # drive the robot
@@ -209,12 +232,12 @@ class FakeMarkerServer():
         self.publish_feedback('Aligned robot to counter')
         self.publish_feedback('Looking for objects')
         self.recognition = None
-        #Segment the table
+        # Segment the table
         self.segclient.send_goal(UserCommandGoal(request=1,interactive=False))
         self.segclient.wait_for_result()
         while self.recognition is None:
             time.sleep(1)
-        #Recognize objects
+        # Recognize objects
         self.recognition = None
         self.segclient.send_goal(UserCommandGoal(request=2,interactive=False))
         self.segclient.wait_for_result()
@@ -222,9 +245,19 @@ class FakeMarkerServer():
             time.sleep(1)
         return True
 
+    # **Run by load_template service**
+    # Identifies remaining objects needed in template
+    # Moves to and aligns with counter
+    # Scans and recognizes objects on counter that match template
+    # Picks up one object
+    # Backs up from counter
+    # Drives to table
+    # Places object in given template location
+    # Repeats
     def load(self, goal):
         name = goal.name
         self.publish_feedback('Loading template ' + name)
+        # if requested template does not exist...
         if name not in self.templates.keys():
             self.publish_result(name + ' template does not exist')
             return
@@ -233,16 +266,20 @@ class FakeMarkerServer():
         # look for any objects we need
         while len(template) is not 0:
             pickup_arm = None
+            # if it does not see any objects/could not drive to counter
             if not self.look_for_objects():
                 self.publish_result('Object looking failed.')
                 return
+            # for each object in template array...
             for template_im in template:
+                # for each recognized object
                 for rec_obj in self.recognition:
                     if template_im.name == self.create_name(rec_obj.potential_models[0].model_id):
                         # create the object info for it
                         obj_info = self.create_object_info(rec_obj)
                         # pick it up
                         pickup_arm = self.pickup(rec_obj)
+                        # if neither arm can could pick up object...
                         if pickup_arm is None:
                             self.publish_result('Pickup failed.')
                             return
@@ -256,21 +293,27 @@ class FakeMarkerServer():
                         self.publish_feedback('Grasp found')
                         # good job robot, place that object
                         to_place = Pose()
+                        # location of object in template on table
                         to_place.position.z = TABLE_HEIGHT - PLACE_HEIGHT_OFFSET
                         to_place.position.x = template_im.pose.position.x
                         to_place.position.y = template_im.pose.position.y
                         placed = self.place_object(obj_info, pickup_arm, to_place)
+                        # if the object could not be placed
                         if not placed:
                             self.publish_result('Place failed.')
                             return
                         self.publish_feedback('Placed the object!')
+                        # removes object from list of objects to pick up from template
                         template.remove(template_im)
+            # if no objects are found...
             if pickup_arm is None:
                 # No objects found :(
                 self.publish_result('No objects found that we need :(')
                 return
+        # We completed the task!
         self.publish_result('Great success!')
         
+    # resets collision map of world and rescan
     def reset_collision_map(self):
         self.publish_feedback('Reseting collision map')
         goal = IMGUIGoal()
@@ -280,6 +323,7 @@ class FakeMarkerServer():
         self.imgui.wait_for_result()
         self.publish_feedback('Collision map reset')
     
+    # reset hallucinated interactive marker objects' positions on visualized table
     def reset_objects(self):
         pose = Pose()
         pose.position.z = TABLE_HEIGHT
@@ -288,7 +332,8 @@ class FakeMarkerServer():
         for obj_id in self.objects:
             self.create_mesh(obj_id, pose)
             pose.position.y = pose.position.y + 0.25
-        
+    
+    # Picks up object that matches obj   
     def pickup(self, obj):
         # start by picking up the object
         options = IMGUIOptions()
@@ -341,9 +386,11 @@ class FakeMarkerServer():
             resp = self.grasp_check(arm)
             if resp.isGrasping is True:
                 self.publish_feedback('Object was grasped')
+                # attempt to back up
                 backup_goal = BackupGoal()
                 self.backup.send_goal_and_wait(backup_goal)
                 res = self.backup.get_result()
+                # if robot could not back up
                 if not res.success:
                     self.publish_feedback('Backup failed.')
                     return None
@@ -351,7 +398,8 @@ class FakeMarkerServer():
             else:
                 self.move_arm_to_side(options.arm_selection)
                 return None
-            
+    
+    # moves arm to sides        
     def move_arm_to_side(self, arm_selection):
         goal = IMGUIGoal()
         goal.command.command = 4
@@ -377,7 +425,8 @@ class FakeMarkerServer():
         else:
             self.publish_feedback('Arm move was successful')
             return True
-        
+      
+    # place object in given arm to given pose  
     def place_object(self, obj_info_orig, arm_selection, pose):
         #drive to the table
         self.publish_feedback('Driving robot to table')
@@ -404,8 +453,10 @@ class FakeMarkerServer():
         pose.orientation.x = 0
         pose.orientation.y = 0
         goal.place_locations = []
+        #iterating through possible x-locations to place object
         for x in range(0, 10):
             pose.position.x = pose.position.x + ((x - 5) * 0.0025)
+            #iterating through possible y-locations to place object
             for y in range(0, 10):
                 pose.position.y = pose.position.y + ((y - 5) * 0.0025)
                 # 'i' is for some rotations
@@ -448,6 +499,14 @@ class FakeMarkerServer():
         # check the result
         res = self.place.get_result()
         if res.manipulation_result.value == -6 or res.manipulation_result.value == 1:
+            # attempt to back up
+            backup_goal = BackupGoal()
+            self.backup.send_goal_and_wait(backup_goal)
+            backup_res = self.backup.get_result()
+            # if robot could not back up
+            if not backup_res.success:
+                self.publish_feedback('Backup failed.')
+                return False            
             self.move_arm_to_side(arm_selection)
             return True
         else:
