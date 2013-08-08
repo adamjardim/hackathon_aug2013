@@ -206,6 +206,7 @@ class FakeMarkerServer():
             self.templates[req.name] = to_save
             # PICKLE IT!
             pickle.dump(self.templates, open(SAVE_FILE, 'wb'))
+            self.play('/home/rctoris/wav/t3_affirmative.wav')
             self.reset_objects()
             return SaveTemplateResponse(True)
         else:
