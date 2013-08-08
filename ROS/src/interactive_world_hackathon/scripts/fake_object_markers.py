@@ -13,6 +13,7 @@ from geometry_msgs.msg import Pose
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
 from visualization_msgs.msg import Marker, InteractiveMarker, InteractiveMarkerControl, InteractiveMarkerFeedback
 from interactive_world_hackathon.srv import SaveTemplate, SaveTemplateResponse
+from interactive_world_hackathon.srv import PrintTemplates, PrintTemplateResponse
 from pr2_object_manipulation_msgs.msg import IMGUIAction, IMGUIOptions, IMGUIGoal
 import copy
 import pickle
@@ -71,6 +72,8 @@ class FakeMarkerServer():
         self.load_server.start()
         # create the IM server
         self.server = InteractiveMarkerServer('~fake_marker_server')
+        # create return list of templates
+        rospy.Service('~print_templates', PrintTemplates, self.get_templates)
         # used to get model meshes
         self.get_mesh = rospy.ServiceProxy('/objects_database_node/get_model_mesh', GetModelMesh)
         # hack to get the grasp
@@ -88,6 +91,18 @@ class FakeMarkerServer():
         except:
             self.templates = dict()
             rospy.loginfo('New template file started.')
+
+    def get_templates(self):
+        temp_list = []
+        if self.templates.keys() is None:
+            self.publish_feedback('No templates')
+            return
+        print 'Templates are: '
+        for obj in self.templates.keys():
+            temp_list.append(obj)
+            print '\t' + obj
+        print temp_list
+        PrintTemplatesResponse(temp_list)
         
     def store_grasp(self, msg):
         self.last_grasp = msg.result.grasp
