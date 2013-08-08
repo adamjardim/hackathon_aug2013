@@ -23,6 +23,7 @@
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 #include <pr2_object_manipulation_msgs/IMGUIAction.h>
+#include <interactive_world_hackathon/GraspCheck.h>
 //#include <pr2_object_manipulation_msgs/IMGUICommand.h>
 //#include <pr2_object_manipulation_msgs/IMGUIOptions.h>
 
@@ -50,6 +51,7 @@ public:
     ros::Subscriber objectSubscriber;
 
 	ros::ServiceClient position_client;
+	ros::ServiceClient graspCheckClient;
 
 	//Action clients
 	actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> acMoveBase;
@@ -99,6 +101,7 @@ public:
 	
 	//segmented objects
 	manipulation_msgs::GraspableObjectList objectList;
+	bool hasSegmented;
 
 	taskActions();
 
@@ -115,5 +118,7 @@ public:
 	void executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& goal);
 	
 	void objectCallback(const manipulation_msgs::GraspableObjectList& objects);
+
+	void resetCollisionObjects();
 };
 

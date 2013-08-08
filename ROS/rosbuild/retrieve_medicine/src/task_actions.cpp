@@ -19,6 +19,8 @@ taskActions::taskActions() :
 	asPickupAll(n, "pickup_all_action", boost::bind(&taskActions::executePickupAll, this, _1), false),
 	asRelease(n, "release_action", boost::bind(&taskActions::executeRelease, this, _1), false)
 {
+	hasSegmented = false;
+
 	ROS_INFO("Waiting for move_base action server...");
 	acMoveBase.waitForServer();
 	ROS_INFO("Finished waiting for move_base action server.");
@@ -59,6 +61,7 @@ taskActions::taskActions() :
 	baseCommandPublisher = n.advertise<geometry_msgs::Twist>("/base_controller/command", -1);
 
     position_client = n.serviceClient<position_server::GetPosition>("position_server/get_position");
+    graspCheckClient = n.serviceClient<interactive_world_hackathon::GraspCheck>("interactive_world_hackathon/grasp_check");
     
     //Define arm joint positions
 	string rightJoints[] = {"r_shoulder_pan_joint", "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint", "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint"};
@@ -379,23 +382,28 @@ void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPt
 	acSegment.waitForResult(ros::Duration(15));
 	
 	//segment
+	resetCollisionObjects();
 	segmentGoal.request = 1;	//segment
 	acSegment.sendGoal(segmentGoal);
 	acSegment.waitForResult(ros::Duration(15));
 	
+	ros::Rate segmentRate(10);
+	while (hasSegmented == false)
+	{
+		segmentRate.sleep();
+	}
+	
 	//pickup objects
 	if (objectList.graspable_objects.size() > 0)
-	{
+	{	
+		hasSegmented = false;
+		ROS_INFO("Picking up object...");
 		pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
 		pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
 	
 		imguiOptions.collision_checked = true;
 		imguiOptions.grasp_selection = 1;	//grasp provided object
 		imguiOptions.arm_selection = 0;	//TODO set this based on object position
-		//imguiOptions.reset_choice = 0;
-		//imguiOptions.arm_action_choice = 0;	//move arm to side
-		//imguiOptions.arm_planner_choice = 1;	//move arm with planner
-		//imguiOptions.gripper_slider_position = 0; //close gripper
 		imguiOptions.selected_object = objectList.graspable_objects[0]; //selected object
 		
 		imguiGoal.command.command = 0; 	//pickup
@@ -407,6 +415,22 @@ void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPt
 		
 		if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 		{
+			ROS_INFO("Pickup succeeded, checking grasp...");
+			//check for successful grasp
+			interactive_world_hackathon::GraspCheck srv;
+			srv.request.side = "right";
+			graspCheckClient.call(srv);
+			if (!srv.response.isGrasping)
+			{
+				ROS_INFO("Grasp failed");
+				ROS_INFO("Pickup All action failed");
+				asPickupAllResult.result_msg = "Pickup All failed";
+				asPickupAllResult.success = false;
+				asPickupAll.setSucceeded(asPickupAllResult);
+				return;
+			}	
+			
+			ROS_INFO("Grasp succeeded!");
 			//move arm to side
 			pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
 			pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
@@ -414,11 +438,8 @@ void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPt
 			imguiOptions.collision_checked = true;
 			imguiOptions.grasp_selection = 0;	//grasp provided object
 			imguiOptions.arm_selection = 0;	//TODO set this based on object position
-			//imguiOptions.reset_choice = 0;
 			imguiOptions.arm_action_choice = 0;	//move arm to side
 			imguiOptions.arm_planner_choice = 1;	//move arm with planner
-			//imguiOptions.gripper_slider_position = 0; //close gripper
-			//imguiOptions.selected_object = objectList.graspable_objects[0]; //selected object
 		
 			imguiGoal.command.command = 4; 	//move arm
 			imguiGoal.options = imguiOptions;
@@ -429,34 +450,106 @@ void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPt
 			
 			if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 			{
-				ROS_INFO("Pickup All action succeeded");
-				asPickupAllResult.result_msg = "Pickup All succeeded";
-				asPickupAllResult.success = true;
-				asPickupAll.setSucceeded(asPickupAllResult);
-			}
-			else
-			{
-				ROS_INFO("Pickup All action succeeded");
-				asPickupAllResult.result_msg = "Pickup All failed";
-				asPickupAllResult.success = false;
-				asPickupAll.setSucceeded(asPickupAllResult);
+				//segment
+				resetCollisionObjects();
+				segmentGoal.request = 1;	//segment
+				acSegment.sendGoal(segmentGoal);
+				acSegment.waitForResult(ros::Duration(15));
+				
+				while (hasSegmented == false)
+				{
+					segmentRate.sleep();
+				}
+				
+				//pickup objects
+				if (objectList.graspable_objects.size() > 0)
+				{	
+					hasSegmented = false;
+					ROS_INFO("Picking up object...");
+					pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
+					pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
+				
+					imguiOptions.collision_checked = true;
+					imguiOptions.grasp_selection = 1;	//grasp provided object
+					imguiOptions.arm_selection = 1;	//TODO set this based on object position
+					imguiOptions.selected_object = objectList.graspable_objects[0]; //selected object
+		
+					imguiGoal.command.command = 0; 	//pickup
+					imguiGoal.options = imguiOptions;
+		
+					acIMGUI.sendGoal(imguiGoal);
+		
+					acIMGUI.waitForResult();
+		
+					if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+					{
+						ROS_INFO("Pickup succeeded, checking grasp...");
+						//check for successful grasp
+						interactive_world_hackathon::GraspCheck srv;
+						srv.request.side = "left";
+						graspCheckClient.call(srv);
+						if (!srv.response.isGrasping)
+						{
+							ROS_INFO("Grasp failed");
+							ROS_INFO("Pickup All action failed");
+							asPickupAllResult.result_msg = "Pickup All failed";
+							asPickupAllResult.success = false;
+							asPickupAll.setSucceeded(asPickupAllResult);
+							return;
+						}
+						
+						ROS_INFO("Grasp succeeded!");
+						//move arm to side
+						pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
+						pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
+	
+						imguiOptions.collision_checked = true;
+						imguiOptions.grasp_selection = 0;	//grasp provided object
+						imguiOptions.arm_selection = 1;	//TODO set this based on object position
+						imguiOptions.arm_action_choice = 0;	//move arm to side
+						imguiOptions.arm_planner_choice = 1;	//move arm with planner
+		
+						imguiGoal.command.command = 4; 	//move arm
+						imguiGoal.options = imguiOptions;
+		
+						acIMGUI.sendGoal(imguiGoal);
+		
+						acIMGUI.waitForResult();
+			
+						if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+						{
+							ROS_INFO("Pickup All action succeeded");
+							asPickupAllResult.result_msg = "Pickup All succeeded";
+							asPickupAllResult.success = true;
+							asPickupAll.setSucceeded(asPickupAllResult);
+							return;
+						}
+					}
+				}
 			}
 		}
-		else
-		{
-			ROS_INFO("Pickup All action failed to pickup object");
-			asPickupAllResult.result_msg = "Pickup All failed";
-			asPickupAllResult.success = false;
-			asPickupAll.setSucceeded(asPickupAllResult);
-		}
 	}
-	else
-	{
-		ROS_INFO("Pickup All action failed to segment any objects");
-		asPickupAllResult.result_msg = "Pickup All failed";
-		asPickupAllResult.success = false;
-		asPickupAll.setSucceeded(asPickupAllResult);
-	}
+	
+	ROS_INFO("Pickup All action failed");
+	asPickupAllResult.result_msg = "Pickup All failed";
+	asPickupAllResult.success = false;
+	asPickupAll.setSucceeded(asPickupAllResult);
+}
+
+void taskActions::resetCollisionObjects()
+{
+	pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
+	pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
+	imguiOptions.collision_checked = true;
+	imguiOptions.grasp_selection = 0;
+	imguiOptions.reset_choice = 0;	//reset collision objects
+	
+	imguiGoal.command.command = 3; 	//reset collision objects
+	imguiGoal.options = imguiOptions;
+
+	acIMGUI.sendGoal(imguiGoal);
+
+	acIMGUI.waitForResult();
 }
 
 void taskActions::basePoseCallback(const geometry_msgs::Pose& newPose)
@@ -475,6 +568,7 @@ void taskActions::objectCallback(const manipulation_msgs::GraspableObjectList& o
 	ROS_INFO("Received new object data");
 	objectList = objects;
 	ROS_INFO("Updated object data");
+	hasSegmented = true;
 }
 
 void taskActions::executeHandoff(const retrieve_medicine::handoffGoalConstPtr& goal)
