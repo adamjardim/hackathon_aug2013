@@ -19,6 +19,7 @@ add_service_files(
   FILES
   GraspCheck.srv
   SaveTemplate.srv
+  PrintTemplates.srv
 )
 
 add_action_files(
