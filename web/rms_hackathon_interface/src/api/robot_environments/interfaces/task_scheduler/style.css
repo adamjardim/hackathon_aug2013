@@ -1,0 +1,106 @@
+/**
+ * The custom style sheet for the National Geographic interface.
+ *
+ *  Author: Russell Toris
+ * Version: June, 3 2013
+ */
+body {
+  background: #000;
+  overflow: hidden;
+}
+
+body,.mjpeg-widget,.nav-widget,.scene,.toolbar,.terminal,.scene-blocker {
+  padding: 0;
+  margin: 0;
+  position: absolute;
+}
+
+.mjpeg-widget,.nav-widget,.terminal {
+  width: 400px;
+  height: 300px;
+  z-index: 500;
+}
+
+.mjpeg-widget,.nav-widget,.toolbar {
+  left: 0;
+}
+
+.mjpeg-widget {
+  opacity: 0.95;
+}
+
+.nav-widget {
+  opacity: 0.75;
+}
+
+.terminal {
+  opacity: 0.8;
+  background: #000;
+  border-radius: 0 50px 0 0;
+  box-shadow: -3px 3px 10px 5px #ee2222;
+  color: green;
+  overflow-y: auto;
+}
+
+.toolbar {
+  opacity: 0.9;
+  background: #be7c7c;
+  left: 400px;
+  height: 150px;
+  z-index: 250;
+  box-shadow: 0 6px 3px -3px #ee2222;
+  text-align: center;
+}
+
+.nav-widget canvas {
+  border-radius: 0 0 0 50px;
+  box-shadow: 3px -3px 10px 5px #ee2222;
+}
+
+.mjpeg-widget canvas {
+  border-radius: 0 0 50px 0;
+  box-shadow: -3px -3px 10px 5px #ee2222;
+}
+
+.scene {
+  width: 100%;
+  left: 0;
+  z-index: 0;
+  opacity: 0.95;
+}
+
+.scene-blocker {
+  background-color:#eeeeee;
+  width: 100%;
+  left: 0;
+  z-index: 10;
+  opacity: 0.95;
+}
+
+.scheduler {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  padding: 20px;
+  background-color:#eeeeee;
+  border-radius: 20px 20px 20px 20px;
+  box-shadow: 3px -3px 10px 5px #ee2222;
+  opacity: 0.9;
+  z-index: 1000;
+}
+
+th, td {
+  text-align: center;
+  padding: 1px 5px;
+}
+
+.animation {
+  -webkit-animation:glowing 1s linear 0s infinite alternate;
+}
+
+@-webkit-keyframes glowing /* Safari and Chrome */
+{
+0%   {background:white;}
+50%  {background:red;}
+100% {background:white;}
+}
