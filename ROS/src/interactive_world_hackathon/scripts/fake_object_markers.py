@@ -93,7 +93,7 @@ class FakeMarkerServer():
         except:
             self.templates = dict()
             rospy.loginfo('New template file started.')
-        self.play('/home/rctoris/wav/c3po.wav')
+        self.play('/home/rctoris/wav/GLaDOS_generic_security_camera_destroyed-2.wav')
 
     def get_templates(self, req):
         temp_list = []
