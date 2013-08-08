@@ -1,9 +1,11 @@
 #include "ros/ros.h"
+
 #include "hackathon_scheduler/Event.h"
 #include "hackathon_scheduler/AddEvent.h"
 #include "hackathon_scheduler/GetSchedule.h"
 #include "hackathon_scheduler/RemoveEvent.h"
 #include "hackathon_scheduler/TaskStatus.h"
+
 #include "std_msgs/String.h"
 #include "std_msgs/Empty.h"
 #include "std_srvs/Empty.h"
@@ -13,8 +15,8 @@
 #include <hackathon_scheduler/countResult.h>
 #include <hackathon_scheduler/countFeedback.h>
 
-//#include <something/lunchAction.h>
-//#include <something/medicineAction.h>
+#include <interactive_world_hackathon/LoadAction.h>
+#include <retrieve_medicine/RetrieveMedicineAction.h>
 
 #include <vector>
 #include <string.h>
@@ -23,6 +25,9 @@
 std::vector<hackathon_scheduler::Event> schedule;
 ros::Publisher* taskStatusPublisher;
 std::string taskName="";
+
+bool medicine_needs_teleop=false;
+bool should_restart_medicine=false;
 
 //get the number of seconds since midnight from an hh:mm time string
 long int secondsFromStringTime(std::string time) {
@@ -176,6 +181,12 @@ bool testPublishStatus(std_srvs::Empty::Request &req, std_srvs::Empty::Response 
   return true;
 }
 
+bool teleopFinishedServiceCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+  ROS_INFO("Will restart medicine task");
+  should_restart_medicine=true;
+  return true;
+}
+
 /////////Dummy Action callbacks
 // Called once when the goal completes
 void dummyActionDoneCb(const actionlib::SimpleClientGoalState& state,
@@ -238,21 +249,28 @@ bool testDummyAction(std_srvs::Empty::Request &req, std_srvs::Empty::Response &r
 ///////////////////
 
 //////////medicine task
+
 // Called once when the goal completes
-/*void medicineActionDoneCb(const actionlib::SimpleClientGoalState& state,
-            const something::medicineResultConstPtr& result)
+void medicineActionDoneCb(const actionlib::SimpleClientGoalState& state,
+            const retrieve_medicine::RetrieveMedicineResultConstPtr& result)
 {
-  ROS_INFO("Dummy Action Finished");
+  ROS_INFO("Retrieve Medicine Action Finished with status '%s'",result->result_msg.c_str());
 
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
+  status.message=result->result_msg;
 
   if (state==actionlib::SimpleClientGoalState::SUCCEEDED) {
-    status.message=status.status="success";
+    //determine whether we need teleop
+    if (result->success) status.status="success";
+    else {
+      status.status="teleop";
+      medicine_needs_teleop=true;
+    }
     taskStatusPublisher->publish(status);
   }
   else {
-    status.message=status.status="failure";
+    status.status="failure";
     taskStatusPublisher->publish(status);
   }
 }
@@ -260,67 +278,72 @@ bool testDummyAction(std_srvs::Empty::Request &req, std_srvs::Empty::Response &r
 // Called once when the goal becomes active
 void medicineActionActiveCb()
 {
-  ROS_INFO("Dummy action just went active");
+  medicine_needs_teleop=true;
+  ROS_INFO("Retrieve Medicine action just went active");
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
   status.status="executing";
-  status.message="starting medicine task";
+  status.message="starting to Retrieve Medicine";
   taskStatusPublisher->publish(status);
 }
 
 // Called every time feedback is received for the goal
-void medicineActionFeedbackCb(const hackathon_scheduler::countFeedbackConstPtr& feedback)
+void medicineActionFeedbackCb(const retrieve_medicine::RetrieveMedicineFeedbackConstPtr& feedback)
 {
-  ROS_INFO("Got dummy action feedback: %d",feedback->current);
+  ROS_INFO("Got retrieve medicine action feedback: '%s'",feedback->feedback_msg.c_str());
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
   status.status="executing";
-  char buf[40];
-  sprintf(buf,"dummy task count = %d",feedback->current);
-  status.message=buf;
+  status.message=feedback->feedback_msg;
   taskStatusPublisher->publish(status);
 }
-*/
-void get_medicine() {
 
- //run the medicine task
-/*  actionlib::SimpleActionClient<something:medicineAction> client("something/medicine", true); // true -> don't need ros::spin()
+void get_medicine() {
+  
+  //run the medicine task
+  actionlib::SimpleActionClient<retrieve_medicine::RetrieveMedicineAction> client("retrieve_medicine_action", true); // true -> don't need ros::spin()
   client.waitForServer();
-  something::medicineGoal goal;
+  retrieve_medicine::RetrieveMedicineGoal goal;
   client.sendGoal(goal, &medicineActionDoneCb,&medicineActionActiveCb,&medicineActionFeedbackCb);
   //wait until success or failure
   client.waitForResult();
   //see if medicine task failed and we need to do teleop
-  if (client.getState() != actionlib::SimpleClientGoalState::SUCCEEDED) { //medicine task failed, should do teleop
-    //if doing teleop, spin until you receive a resume medicine message/servicecall, then restart get_medicine
+  if (medicine_needs_teleop) {
     should_restart_medicine=false;
     ros::Rate rate(5);
+    //spin until you receive a resume medicine message/servicecall, then restart get_medicine   
     while (!should_restart_medicine) {
       ros::spinOnce();
       rate.sleep();
     }
+    medicine_needs_teleop=false;
     get_medicine();
   }
-*/
- //if success, finish
 
+  //if success, finish
+  medicine_needs_teleop=false;
+  should_restart_medicine=false;
+
+  ROS_INFO("Medicine task finished");
 }
-//////////
+
+//////////end medicine task
 //////////lunch task
-/*void lunchActionDoneCb(const actionlib::SimpleClientGoalState& state,
-            const something::lunchResultConstPtr& result)
+void lunchActionDoneCb(const actionlib::SimpleClientGoalState& state,
+            const interactive_world_hackathon::LoadResultConstPtr& result)
 {
-  ROS_INFO("Dummy Action Finished");
+  ROS_INFO("Lunch action finished with message %s",result->msg.c_str());
 
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
+  status.message=result->msg;
 
   if (state==actionlib::SimpleClientGoalState::SUCCEEDED) {
-    status.message=status.status="success";
+    status.status="success";
     taskStatusPublisher->publish(status);
   }
   else {
-    status.message=status.status="failure";
+    status.status="failure";
     taskStatusPublisher->publish(status);
   }
 }
@@ -328,7 +351,7 @@ void get_medicine() {
 // Called once when the goal becomes active
 void lunchActionActiveCb()
 {
-  ROS_INFO("Dummy action just went active");
+  ROS_INFO("Lunch action just went active");
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
   status.status="executing";
@@ -337,28 +360,26 @@ void lunchActionActiveCb()
 }
 
 // Called every time feedback is received for the goal
-void medicineActionFeedbackCb(const hackathon_scheduler::countFeedbackConstPtr& feedback)
+void lunchActionFeedbackCb(const interactive_world_hackathon::LoadFeedbackConstPtr& feedback)
 {
-  ROS_INFO("Got dummy action feedback: %d",feedback->current);
+  ROS_INFO("Got lunch action feedback: %s",feedback->feed.c_str());
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
   status.status="executing";
-  char buf[40];
-  sprintf(buf,"dummy task count = %d",feedback->current);
-  status.message=buf;
+  status.message=feedback->feed;
   taskStatusPublisher->publish(status);
 }
-*/
+
 void get_lunch(std::string template_name) {
   //get lunch with the given template
-  /*actionlib::SimpleActionClient<something:lunchAction> client("something/lunch", true); // true -> don't need ros::spin()
+  actionlib::SimpleActionClient<interactive_world_hackathon::LoadAction> client("load_template", true); // true -> don't need ros::spin()
   client.waitForServer();
-  something::lunchGoal goal;
-  goal.template=template_name;
+  interactive_world_hackathon::LoadGoal goal;
+  goal.name=template_name;
   client.sendGoal(goal, &lunchActionDoneCb,&lunchActionActiveCb,&lunchActionFeedbackCb);
   //wait until success or failure
   client.waitForResult();
-  */
+  ROS_INFO("Lunch task finished");
 }
 //////////
 
@@ -390,10 +411,11 @@ int main(int argc, char **argv)
   ros::ServiceServer getScheduleService = n.advertiseService("hackathon_scheduler/getSchedule",getSchedule);
   ros::ServiceServer testPublishStatusService = n.advertiseService("hackathon_scheduler/testPublishStatus",testPublishStatus);
   ros::ServiceServer testActionService = n.advertiseService("hackathon_scheduler/testActionService",testDummyAction);
+  ros::ServiceServer teleopFinishedService = n.advertiseService("hackathon_scheduler/teleopFinishedService",teleopFinishedServiceCallback);
   ros::Publisher p = n.advertise<hackathon_scheduler::TaskStatus>("hackathon_scheduler/status", 100);
   taskStatusPublisher = &p;
 //  ros::Publisher taskStatusPublisher = n.advertise<hackathon_scheduler::TaskStatus>("hackathon_scheduler/status", 100);
-  ROS_INFO("Add any schedule you want.");
+  ROS_INFO("Ready to add events to schedule.");
 
   ros::Rate loop_rate(10.0); // 1Hz
 

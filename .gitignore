@@ -1,4 +1,14 @@
+*Action*.msg
+*Feedback.msg
+*Goal.msg
+*Result.msg
 .project
 .pydevproject
 .settings
+bin
+build
+msg_gen
 node_modules
+srv_gen
+ROS/rosbuild/position_server/src/position_server
+ROS/rosbuild/retrieve_medicine/src/retrieve_medicine/

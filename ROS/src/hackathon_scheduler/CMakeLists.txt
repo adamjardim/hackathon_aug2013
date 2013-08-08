@@ -4,7 +4,7 @@ project(hackathon_scheduler)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs message_generation actionlib_msgs actionlib)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs message_generation actionlib_msgs actionlib interactive_world_hackathon)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -55,7 +55,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES hackathon_scheduler
-  CATKIN_DEPENDS roscpp rospy std_msgs actionlib_msgs actionlib
+  CATKIN_DEPENDS roscpp rospy std_msgs actionlib_msgs actionlib interactive_world_hackathon
 #  DEPENDS system_lib
 )
 
@@ -67,7 +67,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS} ../../rosbuild/retrieve_medicine/msg_gen/cpp/include #relative path to medicine action files
 )
 
 ## Declare a cpp library
