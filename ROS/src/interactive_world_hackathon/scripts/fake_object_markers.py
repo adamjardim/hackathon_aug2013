@@ -48,20 +48,20 @@ class FakeMarkerServer():
         # create a simple TF listener
         self.tf_listener = tf.TransformListener()
         self.grasp_check = rospy.ServiceProxy('/interactive_world_hackathon/grasp_check', GraspCheck)
-        self.speak = rospy.ServiceProxy('/tts/speak', Speak)
-        self.play = rospy.ServiceProxy('/tts/play', Speak)
+        ####self.speak = rospy.ServiceProxy('/tts/speak', Speak)
+        ####self.play = rospy.ServiceProxy('/tts/play', Speak)
         # create the nav client
         self.nav = actionlib.SimpleActionClient('navigate_action', navigateAction)
-        self.nav.wait_for_server()
+        ####self.nav.wait_for_server()
         # create the backup client
         self.backup = actionlib.SimpleActionClient('backup_action', BackupAction)
-        self.backup.wait_for_server()
+        ####self.backup.wait_for_server()
         # create the place action client
         self.place = actionlib.SimpleActionClient('object_manipulator/object_manipulator_place', PlaceAction)
-        self.place.wait_for_server()
+        ####self.place.wait_for_server()
         # Segmentation client
         self.segclient = actionlib.SimpleActionClient('/object_detection_user_command', UserCommandAction)
-        self.segclient.wait_for_server()
+        ####self.segclient.wait_for_server()
         self.recognition=None
         # create the IMGUI action client
         self.imgui = actionlib.SimpleActionClient('imgui_action', IMGUIAction)
@@ -102,8 +102,8 @@ class FakeMarkerServer():
             return
         for obj in self.templates.keys():
             temp_list.append(str(obj))
-        print temp_list
-        PrintTemplatesResponse(temp_list)
+        #print temp_list
+        return PrintTemplatesResponse(temp_list)
         
     def store_grasp(self, msg):
         self.last_grasp = msg.result.grasp
@@ -206,7 +206,7 @@ class FakeMarkerServer():
             self.templates[req.name] = to_save
             # PICKLE IT!
             pickle.dump(self.templates, open(SAVE_FILE, 'wb'))
-            self.play('/home/rctoris/wav/t3_affirmative.wav')
+            ####self.play('/home/rctoris/wav/t3_affirmative.wav')
             self.reset_objects()
             return SaveTemplateResponse(True)
         else:
@@ -280,7 +280,7 @@ class FakeMarkerServer():
             return
         template = copy.deepcopy(self.templates[name])
         self.publish_feedback('Loaded template ' + name)
-        self.play('/home/rctoris/wav/help.wav')
+        ####self.play('/home/rctoris/wav/help.wav')
         # look for any objects we need
         while len(template) is not 0:
             pickup_arm = None
@@ -322,7 +322,7 @@ class FakeMarkerServer():
                             return
                         self.publish_feedback('Placed the object!')
                         if len(template) is not 1:
-                            self.play('/home/rctoris/wav/ill-be-back.wav')
+                            ####self.play('/home/rctoris/wav/ill-be-back.wav')
                         # removes object from list of objects to pick up from template
                         template.remove(template_im)
             # if no objects are found...
@@ -331,7 +331,7 @@ class FakeMarkerServer():
                 self.publish_result('No objects found that we need :(')
                 return
         # We completed the task!
-        self.play('/home/rctoris/wav/down.wav')
+        ####self.play('/home/rctoris/wav/down.wav')
         self.publish_result('Great success!')
         
     # resets collision map of world and rescan
@@ -380,7 +380,7 @@ class FakeMarkerServer():
         self.publish_feedback('Attempting to pick up')
         self.reset_collision_map()
         self.imgui.send_goal(goal)
-        self.play('/home/rctoris/wav/humnbehv.wav')
+        ####self.play('/home/rctoris/wav/humnbehv.wav')
         self.imgui.wait_for_result()
         # check the result
         res = self.imgui.get_result()
@@ -453,7 +453,7 @@ class FakeMarkerServer():
         #drive to the table
         self.publish_feedback('Driving robot to table')
         nav_goal = navigateGoal('Dining Table Nav', True)
-        self.play('/home/rctoris/wav/run.wav')
+        ####self.play('/home/rctoris/wav/run.wav')
         self.nav.send_goal_and_wait(nav_goal)
         res = self.nav.get_result()
         if not res.success:
