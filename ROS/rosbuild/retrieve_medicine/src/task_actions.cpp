@@ -148,13 +148,6 @@ void taskActions::executeNavigate(const retrieve_medicine::navigateGoalConstPtr&
 	if (dstToGoal < navSuccessThreshold || acMoveBase.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 	{
 		ROS_INFO("Untuck arms and adjust height");
-		//Untuck arms and set torso height
-		pr2_common_action_msgs::TuckArmsGoal armUntuckGoal;
-		armUntuckGoal.tuck_left = false;
-		armUntuckGoal.tuck_right = false;
-		acTuckArms.sendGoal(armUntuckGoal);		
-		acTuckArms.waitForResult(ros::Duration(10));
-		
 		pr2_controllers_msgs::SingleJointPositionGoal torsoGoal;
 		torsoGoal.position = srv.response.position.height;
 		if (torsoGoal.position < 0.0)
@@ -163,9 +156,16 @@ void taskActions::executeNavigate(const retrieve_medicine::navigateGoalConstPtr&
 			torsoGoal.position = 0.6;
 		acMoveTorso.sendGoal(torsoGoal);
 		if (goal->align)
-			acMoveTorso.waitForResult(ros::Duration(15));
+			acMoveTorso.waitForResult(ros::Duration(20));
 		else
 			acMoveTorso.waitForResult(ros::Duration(5));
+	
+		//Untuck arms and set torso height
+		pr2_common_action_msgs::TuckArmsGoal armUntuckGoal;
+		armUntuckGoal.tuck_left = false;
+		armUntuckGoal.tuck_right = false;
+		acTuckArms.sendGoal(armUntuckGoal);		
+		acTuckArms.waitForResult(ros::Duration(15));		
 		
 		if (goal->align)
 		{
@@ -385,6 +385,8 @@ void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPt
 	acSegment.sendGoal(segmentGoal);
 	acSegment.waitForResult(ros::Duration(15));
 	
+	ros::Duration(5.0).sleep();
+	
 	//segment
 	resetCollisionObjects();
 	segmentGoal.request = 1;	//segment
@@ -396,6 +398,8 @@ void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPt
 	{
 		segmentRate.sleep();
 	}
+	
+	ros::Duration(1.0).sleep();
 	
 	hasSegmented = false;
 	
@@ -455,6 +459,8 @@ void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPt
 			
 			if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 			{
+				ros::Duration(1.0).sleep();
+			
 				//segment
 				resetCollisionObjects();
 				segmentGoal.request = 1;	//segment
@@ -465,6 +471,8 @@ void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPt
 				{
 					segmentRate.sleep();
 				}
+				
+				ros::Duration(1.0).sleep();
 				
 				hasSegmented = false;
 				
