@@ -95,6 +95,9 @@ class FakeMarkerServer():
             rospy.loginfo('New template file started.')
         self.play('/home/rctoris/wav/GLaDOS_generic_security_camera_destroyed-2.wav')
 
+    #Service: rosservice call /fake_object_markers/print_templates
+    #Returns a string of template names
+    #ex) list: ['test_template1','test_template2','test_template3']
     def get_templates(self, req):
         temp_list = []
         if self.templates.keys() is None:
