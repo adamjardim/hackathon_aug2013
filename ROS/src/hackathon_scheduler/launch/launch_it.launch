@@ -30,5 +30,5 @@
 	 	<arg name="port" value="9091" />
 	</include>
 
-	<node pkg="hackathon_scheduler" type="hackathon_schedule_node" name="hackathon_scheduler" output="screen" />
+	<node pkg="hackathon_scheduler" type="hackathon_scheduler_node" name="hackathon_scheduler" output="screen" />
 </launch>
