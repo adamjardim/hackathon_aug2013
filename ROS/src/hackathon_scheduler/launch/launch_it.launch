@@ -1,0 +1,27 @@
+<launch>
+    <!--
+    	rosrun mjpeg_server mjpeg_server
+    	rosrun interactive_marker_proxy proxy topic_ns:=/pr2_marker_control_transparent target_frame:=/base_link
+    	rosrun interactive_marker_proxy proxy topic_ns:=/interactive_manipulation target_frame:=/base_link
+    	rosrun tf2_web_republisher tf2_web_republisher
+    	roslaunch rosbridge_server rosbridge_websocket.launch port:=9091
+    	rosrun map_server map_server     	/home/joon/hackathon/ROS/rosbuild/retrieve_medicine/map/living_room.yaml
+    -->
+	<node pkg="mjpeg_server" type="mjpeg_server" name="mjpeg_server" output="screen" />
+	
+	<node pkg="interactive_marker_proxy" type="proxy" name="proxy_pr2_marker_control_transparent" output="screen">
+		<param name="topic_ns" value="/pr2_marker_control_transparent" />
+		<param name="target_frame" value="/base_link" />		
+	</node>
+
+	<node pkg="interactive_marker_proxy" type="proxy" name="proxy_interactive_manipulation" output="screen">
+		<param name="topic_ns" value="/interactive_manipulation" />
+		<param name="target_frame" value="/base_link" />		
+	</node>
+
+	<node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher" output="screen" />
+
+	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" output="screen">
+	 	<arg name="port" value="9091" />
+	</include>
+</launch>
