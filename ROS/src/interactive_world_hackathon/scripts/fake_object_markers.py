@@ -95,6 +95,9 @@ class FakeMarkerServer():
             rospy.loginfo('New template file started.')
         self.play('/home/rctoris/wav/GLaDOS_generic_security_camera_destroyed-2.wav')
 
+    #Service: rosservice call /fake_object_markers/print_templates
+    #Returns a string of template names
+    #ex) list: ['test_template1','test_template2','test_template3']
     def get_templates(self, req):
         temp_list = []
         if self.templates.keys() is None:
@@ -248,6 +251,7 @@ class FakeMarkerServer():
             return False
         self.publish_feedback('Aligned robot to counter')
         self.publish_feedback('Looking for objects')
+        self.play('/home/rctoris/wav/GLaDOS_10_part1_entry-2.wav')
         self.recognition = None
         # Segment the table
         self.segclient.send_goal(UserCommandGoal(request=1,interactive=False))
