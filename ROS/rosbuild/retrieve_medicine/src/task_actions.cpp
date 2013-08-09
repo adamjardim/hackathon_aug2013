@@ -628,7 +628,7 @@ void taskActions::executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& g
                     }
 
 	  //open left gripper if the coordinate frame of left gripper changes
-	  if( !lflag && count > 10 && fabs( leftGripperTransform.getOrigin().x() - preLeftGripperX ) > 0.001 && fabs( leftGripperTransform.getOrigin().y() - preLeftGripperY ) > 0.001 )
+	  if( !lflag && count > 50 && fabs( leftGripperTransform.getOrigin().x() - preLeftGripperX ) > 0.0006 && fabs( leftGripperTransform.getOrigin().y() - preLeftGripperY ) > 0.0006 )
 	  {
 		pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
 		openGripper.command.position = 0.08;
@@ -639,7 +639,7 @@ void taskActions::executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& g
 	  }
 
 	  //open right gripper if the coordinate frame of right gripper changes
-          if( !rflag && count > 10 && fabs( rightGripperTransorm.getOrigin().x() - preRightGripperX ) > 0.001 && fabs( rightGripperTransorm.getOrigin().y() - preRightGripperY ) > 0.001 )
+          if( !rflag && count > 50 && fabs( rightGripperTransorm.getOrigin().x() - preRightGripperX ) > 0.0006 && fabs( rightGripperTransorm.getOrigin().y() - preRightGripperY ) > 0.0006 )
 	  {
 		pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
 		openGripper.command.position = 0.08;
