@@ -6,6 +6,7 @@
 #include <retrieve_medicine/BackupAction.h>
 #include <retrieve_medicine/PickupAllAction.h>
 #include <retrieve_medicine/RetrieveMedicineAction.h>
+#include <retrieve_medicine/ReleaseAction.h>
 
 //State
 #define STATE_NAVIGATION_1 1
@@ -26,6 +27,7 @@ public:
 	actionlib::SimpleActionClient<retrieve_medicine::handoffAction> acHandoff;
 	actionlib::SimpleActionClient<retrieve_medicine::BackupAction> acBackup;
 	actionlib::SimpleActionClient<retrieve_medicine::PickupAllAction> acPickupAll;
+	actionlib::SimpleActionClient<retrieve_medicine::ReleaseAction> acRelease;
 
 	//Action servers
 	actionlib::SimpleActionServer<retrieve_medicine::RetrieveMedicineAction> asRetrieveMedicine;

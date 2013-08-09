@@ -3,8 +3,4 @@
 	<node pkg="interactive_world_hackathon" type="create_table" name="create_table" output="screen" />
 	<node pkg="interactive_world_hackathon" type="fake_object_markers.py" name="fake_object_markers" output="screen" />
 	<node pkg="interactive_world_hackathon" type="grasp_verification" name="grasp_verification" output="screen" />
-  <node output="screen" name="fake_objects_proxy" pkg="interactive_marker_proxy" type="proxy">
-    <remap from="target_frame" to="/base_link"/>
-    <remap from="topic_ns" to="/fake_object_markers/fake_marker_server"/>
-  </node>
 </launch>

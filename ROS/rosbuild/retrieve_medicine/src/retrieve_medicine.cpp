@@ -7,6 +7,7 @@ retrieveMedicine::retrieveMedicine() :
 	acHandoff("/handoff_action", true),
 	acBackup("/backup_action", true),
 	acPickupAll("/pickup_all_action", true),
+	acRelease("/release_action", true),
 	asRetrieveMedicine(n, "retrieve_medicine_action", boost::bind(&retrieveMedicine::executeRetrieveMedicine, this, _1), false)
 {
 	ROS_INFO("Waiting for navigate action server...");
@@ -121,12 +122,34 @@ void retrieveMedicine::executeRetrieveMedicine(const retrieve_medicine::Retrieve
 	
 	if (state == STATE_HANDOFF)
 	{
+		/*
 		retrieve_medicine::handoffGoal handGoal;
 		acHandoff.sendGoal(handGoal);
 		acHandoff.waitForResult();
 		retrieve_medicine::handoffResultConstPtr handResult = acHandoff.getResult();
 
 		if (handResult->success == false)
+		{
+			state = STATE_NAVIGATION_1;
+			ROS_INFO("Medicine and Water Handoff action failed");
+			asRetrieveMedicineResult.result_msg = "Medicine and water delivery failed, please complete the task manually.";
+			asRetrieveMedicineResult.success = false;
+			asRetrieveMedicine.setSucceeded(asRetrieveMedicineResult);
+			return;
+		}
+		
+		//state = STATE_NAVIGATION_1;
+		ROS_INFO("Retrieve Medicine action succeeded");
+		asRetrieveMedicineResult.result_msg = "Retrieve Medicine action succeeded";
+		asRetrieveMedicineResult.success = true;
+		asRetrieveMedicine.setSucceeded(asRetrieveMedicineResult);
+		*/
+		retrieve_medicine::ReleaseGoal releaseGoal;
+		acRelease.sendGoal(releaseGoal);
+		acRelease.waitForResult();
+		retrieve_medicine::ReleaseResultConstPtr releaseResult = acRelease.getResult();
+
+		if (releaseResult->success == false)
 		{
 			state = STATE_NAVIGATION_1;
 			ROS_INFO("Medicine and Water Handoff action failed");
