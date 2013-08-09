@@ -248,6 +248,7 @@ class FakeMarkerServer():
             return False
         self.publish_feedback('Aligned robot to counter')
         self.publish_feedback('Looking for objects')
+        self.play('/home/rctoris/wav/GLaDOS_10_part1_entry-2.wav')
         self.recognition = None
         # Segment the table
         self.segclient.send_goal(UserCommandGoal(request=1,interactive=False))
