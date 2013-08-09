@@ -9,4 +9,5 @@
 	
 	<!-- Launch retrieve medicine -->
 	<node pkg="retrieve_medicine" type="task_actions" name="task_actions" output="screen" />
+	<node pkg="retrieve_medicine" type="retrieve_medicine" name="retrieve_medicine" output="screen" />
 </launch>

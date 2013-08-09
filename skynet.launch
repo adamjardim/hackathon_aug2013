@@ -4,5 +4,5 @@
   </include>
 	<include file="$(find retrieve_medicine)/launch/retrieve_medicine.launch" />
 	<include file="$(find interactive_world_hackathon)/launch/lunch_it.launch" />
-	<include file="$(find hackathon_scheduler)/launch/scheduler.launch" />
+	<include file="$(find hackathon_scheduler)/launch/launch_it.launch" />
 </launch>
