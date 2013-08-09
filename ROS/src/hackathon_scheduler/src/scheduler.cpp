@@ -267,7 +267,11 @@ void medicineActionDoneCb(const actionlib::SimpleClientGoalState& state,
 
   if (state==actionlib::SimpleClientGoalState::SUCCEEDED) {
     //determine whether we need teleop
-    if (result->success) status.status="success";
+    if (result->success) {
+      status.status="success";
+      medicine_needs_teleop=false;
+      should_restart_medicine=false;
+    }
     else {
       status.status="teleop";
       medicine_needs_teleop=true;
@@ -283,7 +287,7 @@ void medicineActionDoneCb(const actionlib::SimpleClientGoalState& state,
 // Called once when the goal becomes active
 void medicineActionActiveCb()
 {
-  medicine_needs_teleop=true;
+  medicine_needs_teleop=false;
   ROS_INFO("Retrieve Medicine action just went active");
   hackathon_scheduler::TaskStatus status;
   status.taskName=taskName;
@@ -306,7 +310,7 @@ void medicineActionFeedbackCb(const retrieve_medicine::RetrieveMedicineFeedbackC
 }
 
 void get_medicine() {
-  
+  ROS_INFO("Running medicine task");
   //run the medicine task
   actionlib::SimpleActionClient<retrieve_medicine::RetrieveMedicineAction> client("retrieve_medicine_action", true); // true -> don't need ros::spin()
   client.waitForServer();
