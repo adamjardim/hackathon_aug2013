@@ -57,6 +57,7 @@ taskActions::taskActions() :
 	asHandoff.start();
 	asBackup.start();
 	asPickupAll.start();
+	asRelease.start();
 
 	baseCommandPublisher = n.advertise<geometry_msgs::Twist>("/base_controller/command", -1);
 
@@ -599,6 +600,8 @@ void taskActions::executeHandoff(const retrieve_medicine::handoffGoalConstPtr& g
 
 void taskActions::executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& goal)
 {
+	ROS_INFO("Entered release callback...");
+
 	//listen to transform coordinates and detect the change
 	tf::TransformListener listener;
 	float preLeftGripperX, preLeftGripperY, preRightGripperX, preRightGripperY;
@@ -612,12 +615,17 @@ void taskActions::executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& g
 	bool lflag, rflag;
 	lflag = false;
 	rflag = false;
+	
+	ros::Rate r(20);
 
 	while (1){
+		r.sleep();
+		ROS_INFO("Looking up transforms");
 		count++;
 	        tf::StampedTransform leftGripperTransform;
 	        tf::StampedTransform rightGripperTransorm;
 		try{
+				listener.waitForTransform("/base_link", "/l_gripper_palm_link", ros::Time(0), ros::Duration(3.0));
       			listener.lookupTransform("/base_link", "/l_gripper_palm_link",  
                             			   ros::Time(0), leftGripperTransform);
 			listener.lookupTransform("/base_link", "/r_gripper_palm_link",  
@@ -626,10 +634,14 @@ void taskActions::executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& g
     		catch (tf::TransformException ex){
 		         ROS_ERROR("%s",ex.what());
                     }
+		//ROS_INFO("Left gripper TF difference: %f", fabs( leftGripperTransform.getOrigin().x() - preLeftGripperX ));
+		//ROS_INFO("Right gripper TF difference: %f", fabs( leftGripperTransform.getOrigin().y() - preLeftGripperY ));
+		//ROS_INFO("count: %d", count);
 
 	  //open left gripper if the coordinate frame of left gripper changes
-	  if( !lflag && count > 50 && fabs( leftGripperTransform.getOrigin().x() - preLeftGripperX ) > 0.0006 && fabs( leftGripperTransform.getOrigin().y() - preLeftGripperY ) > 0.0006 )
+	  if( !lflag && count > 50 && fabs( leftGripperTransform.getOrigin().x() - preLeftGripperX ) > 0.0003 && fabs( leftGripperTransform.getOrigin().y() - preLeftGripperY ) > 0.0003 )
 	  {
+	  	ROS_INFO("Releasing left gripper");
 		pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
 		openGripper.command.position = 0.08;
 		openGripper.command.max_effort = -1.0;
@@ -639,8 +651,9 @@ void taskActions::executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& g
 	  }
 
 	  //open right gripper if the coordinate frame of right gripper changes
-          if( !rflag && count > 50 && fabs( rightGripperTransorm.getOrigin().x() - preRightGripperX ) > 0.0006 && fabs( rightGripperTransorm.getOrigin().y() - preRightGripperY ) > 0.0006 )
+          if( !rflag && count > 50 && fabs( rightGripperTransorm.getOrigin().x() - preRightGripperX ) > 0.0003 && fabs( rightGripperTransorm.getOrigin().y() - preRightGripperY ) > 0.0003 )
 	  {
+		  ROS_INFO("Releasing right gripper");
 		pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
 		openGripper.command.position = 0.08;
 		openGripper.command.max_effort = -1.0;
