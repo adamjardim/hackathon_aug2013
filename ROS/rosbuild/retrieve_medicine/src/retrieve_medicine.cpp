@@ -109,7 +109,7 @@ void retrieveMedicine::executeRetrieveMedicine(const retrieve_medicine::Retrieve
 
 		if (navResult->success == false)
 		{
-			state = STATE_PICKUP;
+			state = STATE_HANDOFF;
 			ROS_INFO("Navigate to Couch action failed");
 			asRetrieveMedicineResult.result_msg = "Navigation to couch failed, please complete the task manually.";
 			asRetrieveMedicineResult.success = false;
