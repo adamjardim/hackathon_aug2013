@@ -104,7 +104,10 @@ class task_scheduler
   src="http://cdn.robotwebtools.org/ros2djs/r2/ros2d.min.js">
 </script>
 <script type="text/javascript"
-  src="http://cdn.robotwebtools.org/nav2djs/r1/nav2d.min.js">
+  src="http://cdn.robotwebtools.org/nav2djs/current/nav2d.min.js">
+</script>
+<script type="text/javascript"
+  src="/api/robot_environments/interfaces/task_scheduler/templatemaker.js">
 </script>
 <script type="text/javascript">
   //connect to ROS
@@ -145,11 +148,13 @@ class task_scheduler
     });
 
     // initialize the teleop
+    /*
     new KEYBOARDTELEOP.Teleop({
       ros : ros,
       topic : '<?php echo $teleop[0]['twist']?>',
       throttle : '<?php echo $teleop[0]['throttle']?>'
     });
+*/
 
     // create the main viewer
     var viewer = new ROS3D.Viewer({
@@ -199,12 +204,13 @@ class task_scheduler
     }
     ?>
 
-    // 2D viewer
+    // 2D viewer    
     var navView = new ROS2D.Viewer({
       divID : 'nav',
       width : 400,
       height : 300
     });
+    
     NAV2D.OccupancyGridClientNav({
       ros : ros,
       rootObject : navView.scene,
@@ -212,8 +218,26 @@ class task_scheduler
       serverName : '<?php echo $nav[0]['actionserver']?>',
       actionName : '<?php echo $nav[0]['action']?>',
       topic : '<?php echo $map['topic']?>',
+      withOrientation : true,
       continuous : <?php echo ($map['continuous'] === 0) ? 'true' : 'false'?>
     });
+    /*
+    var navigator = null;
+    var gridClient = new ROS2D.OccupancyGridClient({
+      ros: ros,
+      rootObject: navView.scene,
+      topic : '<?php echo $map['topic']?>',
+    });
+    //gridClient.on('change', function() {
+      navigator = new NAV2D.Navigator({
+        ros: ros,
+        serverName: '<?php echo $nav[0]['actionserver']?>',
+        actionName: '<?php echo $nav[0]['action']?>',
+        topic : '<?php echo $map['topic']?>',
+        rootObject: navView.scene,
+        withOrientation: true,
+      });
+    //});*/
 
     // keep the camera centered at the head
     tfClient.subscribe('/head_mount_kinect_rgb_link', function(tf) {
@@ -336,7 +360,7 @@ class task_scheduler
       writeToTerminal('Navigation: ' + msg.status.text);
       writeToTerminal('Navigation: Action finished');
     });
-    
+      
     // setup a client to listen to pickup goals
     var navGoalFeedback = new ROSLIB.Topic({
       ros : ros,
@@ -397,11 +421,16 @@ class task_scheduler
               }
             });
             writeToTerminal('Event [' + msg.taskName + '] is being executed starting from ' +
-                            msg.startTime + '.');
+                            msg.startTime + 'with a message [' +  msg.message + '].');
             break;
           case 'success': 
             $('#scene-blocker').hide();
-            $('.event-entry').removeClass('animation');
+            $('.event-entry').removeClass('animation');            
+            break;
+          case 'teleop':
+            $('#scene-blocker').hide();
+            $('#resume_action_button').show();
+            $('#show_schedule_button').hide();
             break;
         }
 
@@ -429,6 +458,19 @@ class task_scheduler
       serviceType : 'hackathon_scheduler/RemoveEvent'
     });
 
+    // setup a service client to add a schedule to a hackathon scheduler
+    var printTemplatesClient = new ROSLIB.Service({
+      ros : ros,
+      name : '/fake_marker_server/printTemplates',
+      serviceType : 'fake_marker_server/PrintTemplates'
+    });
+
+    var resumeActionClient = new ROSLIB.Service({
+      ros : ros,
+      name : '/hackathon_scheduler/teleopFinishedService',
+      serviceType : 'hackathon_scheduler/TeleopFinishedService',
+    });
+
     // updates the schedules list
     function updateSchedule () {
       $('#scheduleList').text('loading...');
@@ -438,7 +480,7 @@ class task_scheduler
                      '<th>Time</th>' + 
                      '<th>Event Name</th>' +
                      '<th>Task Type</th>' +
-                     '<th>Parameters</th>' +
+                     '<th>Template Name</th>' +
                      '<th>Delete</th>' +
                      '</tr>';
 
@@ -471,6 +513,24 @@ class task_scheduler
       });
     };
 
+    $('select[name="taskType"]').change(function() {
+      if ($(this).val() == 'lunch') {
+        $('select[name="templates"]').removeAttr('disabled');
+        printTemplatesClient.callService({}, function(result) {          
+          writeToTerminal(result);
+        });
+      } else {
+        $('select[name="templates"]').attr('disabled', 'true');
+      }
+    });
+
+    $('#resume_action_button').button().click(function() {
+      resumeActionClient.callService({}, function() {
+        $('#resume_action_button').hide();
+        $('#show_schedule_button').show();
+      });
+    });
+
     // setup a popup scheduler window
     $('#show_schedule_button').button().click(function() {
       if (!$('.scheduler').is(':visible')) {
@@ -481,7 +541,6 @@ class task_scheduler
         $('.scheduler').hide();        
         $('#show_schedule_button').button('option', 'label', 'Show the Scheduler');
       }
-
     });
 
     $('#addButton').button().click(function() {
@@ -489,7 +548,8 @@ class task_scheduler
         taskName: $("input[name='taskName']").val(),
         startTime: $("input[name='startTime']").val(),
         taskType: $("select[name='taskType']").val(),
-        parameters: $("input[name='parameters']").val(),
+        parameters: ($("select[name='taskType']").val() == 'lunch' ? 
+                     $("input[name='templates']").val() : ''),
       }});
 
       writeToTerminal("sending an event to the scheduler " +
@@ -523,8 +583,9 @@ class task_scheduler
     &nbsp;&nbsp;&nbsp;&nbsp;
     <img src="../api/robot_environments/interfaces/task_scheduler/img/brown.png" /><br><br><br>
     <button id="show_schedule_button">Show the Scheduler</button>
+    <button id="resume_action_button" style="display:none">Resume the Action</button>
     &nbsp;&nbsp;
-    <button id="show_template_button">Create a Template</button>
+    <button id="show_template_button">Create a Template</button> <br>
   </div>
   <div id="terminal" class="terminal"></div>
   <div id="scene" class="scene"></div>
@@ -539,10 +600,10 @@ class task_scheduler
     Event Name : <input type="text" name="taskName" value=""> <br><br>
     Start Time : <input type="time" name="startTime"> &nbsp; &nbsp; &nbsp;
     Task Type : <select name="taskType"> 
-      <option value="MEDICINE">MEDICINE</option>
-      <option value="LUNCH">LUNCH</option>
-    </select> <br><br>
-    Parameters : <input type="text" name="parameters" value=""> <br><br>    
+      <option value="medicine">medicine</option>
+      <option value="lunch">lunch</option>
+    </select> <br><br>    
+    Templates : <select name="templates" disabled> <option>none</option> </select><br><br>
     <button id="addButton">Add</button>
   </div>
 </body>

@@ -29,4 +29,6 @@
 	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" output="screen">
 	 	<arg name="port" value="9091" />
 	</include>
+
+	<node pkg="hackathon_scheduler" type="hackathon_schedule_node" name="hackathon_scheduler" output="screen" />
 </launch>
