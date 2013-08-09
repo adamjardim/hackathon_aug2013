@@ -147,6 +147,7 @@ void taskActions::executeNavigate(const retrieve_medicine::navigateGoalConstPtr&
 
 	if (dstToGoal < navSuccessThreshold || acMoveBase.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 	{
+		ROS_INFO("Untuck arms and adjust height");
 		pr2_controllers_msgs::SingleJointPositionGoal torsoGoal;
 		torsoGoal.position = srv.response.position.height;
 		if (torsoGoal.position < 0.0)
@@ -159,13 +160,12 @@ void taskActions::executeNavigate(const retrieve_medicine::navigateGoalConstPtr&
 		else
 			acMoveTorso.waitForResult(ros::Duration(5));
 	
-		ROS_INFO("Untuck arms and adjust height");
 		//Untuck arms and set torso height
 		pr2_common_action_msgs::TuckArmsGoal armUntuckGoal;
 		armUntuckGoal.tuck_left = false;
 		armUntuckGoal.tuck_right = false;
 		acTuckArms.sendGoal(armUntuckGoal);		
-		acTuckArms.waitForResult(ros::Duration(10));		
+		acTuckArms.waitForResult(ros::Duration(15));		
 		
 		if (goal->align)
 		{
