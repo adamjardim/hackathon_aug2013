@@ -87,10 +87,10 @@ target_link_libraries(hackathon_scheduler_node
   ${catkin_LIBRARIES}
 )
 
-add_executable(dummy_action_server src/dummy_action_server.cpp)
-target_link_libraries(dummy_action_server
-  ${catkin_LIBRARIES}
-)
+#add_executable(dummy_action_server src/dummy_action_server.cpp)
+#target_link_libraries(dummy_action_server
+#  ${catkin_LIBRARIES}
+#)
 
 #############
 ## Install ##
