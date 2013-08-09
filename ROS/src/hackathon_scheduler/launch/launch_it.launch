@@ -19,14 +19,14 @@
 		<param name="target_frame" value="/base_link" />		
 	</node>
 
-  <node output="screen" name="fake_objects_proxy" pkg="interactive_marker_proxy" type="proxy">
+  <node output="screen" name="fake_objects_proxy" pkg="interactive_marker_proxy" type="proxy" output="screen">
     <remap from="target_frame" to="/base_link"/>
     <remap from="topic_ns" to="/fake_object_markers/fake_marker_server"/>
   </node>
 
 	<node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher" output="screen" />
 
-	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" output="screen">
+	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
 	 	<arg name="port" value="9091" />
 	</include>
 
