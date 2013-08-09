@@ -162,7 +162,10 @@ void taskActions::executeNavigate(const retrieve_medicine::navigateGoalConstPtr&
 		else if (torsoGoal.position > 0.6)
 			torsoGoal.position = 0.6;
 		acMoveTorso.sendGoal(torsoGoal);
-		acMoveTorso.waitForResult(ros::Duration(20));
+		if (goal->align)
+			acMoveTorso.waitForResult(ros::Duration(15));
+		else
+			acMoveTorso.waitForResult(ros::Duration(5));
 		
 		if (goal->align)
 		{
@@ -394,10 +397,11 @@ void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPt
 		segmentRate.sleep();
 	}
 	
+	hasSegmented = false;
+	
 	//pickup objects
 	if (objectList.graspable_objects.size() > 0)
 	{	
-		hasSegmented = false;
 		ROS_INFO("Picking up object...");
 		pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
 		pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
@@ -462,10 +466,11 @@ void taskActions::executePickupAll(const retrieve_medicine::PickupAllGoalConstPt
 					segmentRate.sleep();
 				}
 				
+				hasSegmented = false;
+				
 				//pickup objects
 				if (objectList.graspable_objects.size() > 0)
 				{	
-					hasSegmented = false;
 					ROS_INFO("Picking up object...");
 					pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
 					pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
@@ -620,7 +625,6 @@ void taskActions::executeRelease(const retrieve_medicine::ReleaseGoalConstPtr& g
 
 	while (1){
 		r.sleep();
-		ROS_INFO("Looking up transforms");
 		count++;
 	        tf::StampedTransform leftGripperTransform;
 	        tf::StampedTransform rightGripperTransorm;
