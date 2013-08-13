@@ -459,7 +459,7 @@ void taskActions::executePickupAll(const serve_drink::PickupAllGoalConstPtr& goa
 			
 			if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 			{
-				ros::Duration(1.0).sleep();
+			/*	ros::Duration(1.0).sleep();
 			
 				//segment
 				resetCollisionObjects();
@@ -539,7 +539,12 @@ void taskActions::executePickupAll(const serve_drink::PickupAllGoalConstPtr& goa
 							return;
 						}
 					}
-				}
+				}*/
+				ROS_INFO("Pickup All action succeeded");
+							asPickupAllResult.result_msg = "Pickup All succeeded";
+							asPickupAllResult.success = true;
+							asPickupAll.setSucceeded(asPickupAllResult);
+							return;	
 			}
 		}
 	}
