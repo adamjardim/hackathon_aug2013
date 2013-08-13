@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<package>
+  <name>serve_drink_demo_jun</name>
+  <version>0.0.0</version>
+  <description>The serve_drink_demo_jun package</description>
+
+  <maintainer email="jun_ki_lee@borwn.edu">Jun Ki Lee</maintainer>
+
+
+  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+  <license>MIT</license>
+
+  <!-- Url tags are optional, but mutiple are allowed, one per tag -->
+  <!-- Optional attribute type can be: website, bugtracker, or repository -->
+  <!-- Example: -->
+  <!-- <url type="website">http://ros.org/wiki/serve_drink_demo_jun</url> -->
+
+
+  <author email="jun_ki_lee@brown.edu">Jun Ki Lee</author>
+
+  <!-- The *_depend tags are used to specify dependencies -->
+  <!-- Dependencies can be catkin packages or system dependencies -->
+  <!-- Examples: -->
+  <!-- Use build_depend for packages you need at compile time: -->
+  <!--   <build_depend>message_generation</build_depend> -->
+  <!-- Use buildtool_depend for build tool packages: -->
+  <!--   <buildtool_depend>catkin</buildtool_depend> -->
+  <!-- Use run_depend for packages you need at runtime: -->
+  <!--   <run_depend>message_runtime</run_depend> -->
+  <!-- Use test_depend for packages you need only for testing: -->
+  <!--   <test_depend>gtest</test_depend> -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>actionlib</build_depend>
+  <build_depend>actionlib_msgs</build_depend>
+  <build_depend>interactive_world_hackathon</build_depend>
+  <build_depend>manipulation_msgs</build_depend>
+  <build_depend>move_base_msgs</build_depend>
+  <build_depend>position_server</build_depend>
+  <build_depend>pr2_common_action_msgs</build_depend>
+  <build_depend>pr2_controllers_msgs</build_depend>
+  <build_depend>pr2_interactive_object_detection</build_depend>
+  <build_depend>pr2_object_manipulation_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>trajectory_msgs</build_depend>
+  <run_depend>actionlib</run_depend>
+  <run_depend>actionlib_msgs</run_depend>
+  <run_depend>interactive_world_hackathon</run_depend>
+  <run_depend>manipulation_msgs</run_depend>
+  <run_depend>move_base_msgs</run_depend>
+  <run_depend>position_server</run_depend>
+  <run_depend>pr2_common_action_msgs</run_depend>
+  <run_depend>pr2_controllers_msgs</run_depend>
+  <run_depend>pr2_interactive_object_detection</run_depend>
+  <run_depend>pr2_object_manipulation_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>trajectory_msgs</run_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- You can specify that this package is a metapackage here: -->
+    <!-- <metapackage/> -->
+
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>
