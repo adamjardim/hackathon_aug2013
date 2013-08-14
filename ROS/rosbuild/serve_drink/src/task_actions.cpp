@@ -38,11 +38,11 @@ taskActions::taskActions() :
 	ROS_INFO("Finished waiting for move head action server.");
 	
 	ROS_INFO("Waiting for right arm action server...");
-	acMoveBase.waitForServer();
+	acRightArm.waitForServer();
 	ROS_INFO("Finished waiting for right arm action server.");
 	
 	ROS_INFO("Waiting for left arm action server...");
-	acMoveBase.waitForServer();
+	acLeftArm.waitForServer();
 	ROS_INFO("Finished waiting for left arm action server.");
 	
 	ROS_INFO("Waiting for torso action server...");
@@ -87,13 +87,13 @@ void taskActions::executeNavigate(const serve_drink::navigateGoalConstPtr& goal)
 	ROS_INFO("Goal task name: %s", goal->taskName.c_str());
 	
 	position_server::GetPosition srv;
-    srv.request.positionName = goal->taskName;
-    if (!position_client.call(srv))
-    {
-    	ROS_INFO("Invalid task name, action could not finish");
-    	asNavigate.setPreempted();
-    	return;
-    }
+	srv.request.positionName = goal->taskName;
+	if (!position_client.call(srv))
+        {
+    		ROS_INFO("Invalid task name, action could not finish");
+    		asNavigate.setPreempted();
+    		return;
+    	}
 	
 	geometry_msgs::PoseStamped target;
 	target.header.frame_id = "/map";

@@ -37,7 +37,7 @@ void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& go
 	if (state == STATE_NAVIGATION_1)
 	{
 		serve_drink::navigateGoal navGoal;
-		navGoal.taskName = "Medicine Nav";
+		navGoal.taskName = "Serve Table Nav";
 		navGoal.align = true;
 		acNavigate.sendGoal(navGoal);
 		acNavigate.waitForResult();
@@ -101,7 +101,7 @@ void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& go
 	if (state == STATE_NAVIGATION_2)
 	{
 		serve_drink::navigateGoal navGoal;
-		navGoal.taskName = "Couch Dropoff";
+		navGoal.taskName = "Stage Front";
 		navGoal.align = false;
 		acNavigate.sendGoal(navGoal);
 		acNavigate.waitForResult();
