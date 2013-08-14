@@ -2,8 +2,8 @@
 /**
  * A task scheduler interface for August Hackthon
  *
- * @author     Jun Ki Lee <jun_ki_lee@brown.edu>
- * @copyright  2013 Brown University
+ * @author     Jun Ki Lee <jun_ki_lee@brown.edu> 
+ * @copyright  2013 Brown University & Worcester Poletechnic Institute
  * @license    BSD -- see LICENSE file
  * @version    June, 3 2013
  * @link       http://ros.org/wiki/rms_interactive_world
@@ -11,11 +11,6 @@
 
 /**
  * A static class to contain the interface generate function.
- *
- * @author     Jun Ki Lee <jun_ki_lee@brown.edu>
- * @copyright  2013 Brown University
- * @license    BSD -- see LICENSE file
- * @version    June, 3 2013
  */
 class task_scheduler
 {
@@ -623,7 +618,7 @@ class task_scheduler
     Task Type : <select name="taskType"> 
       <option value="medicine">medicine</option>
       <option value="lunch">lunch</option>
-      <option value="medicine">medicine</option>
+      <option value="drink">drink</option>
     </select> <br><br>    
     Templates : <select name="templates" disabled> <option>none</option> </select>
     <a href="javascript:refresh_template_list();">refresh</a>

@@ -1,0 +1,7 @@
+<launch>
+  <!-- What does this do? it is necessary? -->
+  <include file="$(find pr2_machine)/pr2.machine" />
+
+  <!-- launch real-time controller and actions for both hands -->
+  <include file="$(find pr2_gripper_sensor_action)/launch/pr2_gripper_sensor_actions.launch" />
+</launch>
