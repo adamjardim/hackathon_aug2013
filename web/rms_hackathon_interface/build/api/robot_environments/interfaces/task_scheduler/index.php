@@ -623,6 +623,7 @@ class task_scheduler
     Task Type : <select name="taskType"> 
       <option value="medicine">medicine</option>
       <option value="lunch">lunch</option>
+      <option value="medicine">medicine</option>
     </select> <br><br>    
     Templates : <select name="templates" disabled> <option>none</option> </select>
     <a href="javascript:refresh_template_list();">refresh</a>

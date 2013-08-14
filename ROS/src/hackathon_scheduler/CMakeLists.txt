@@ -67,7 +67,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS} ../../rosbuild/retrieve_medicine/msg_gen/cpp/include #relative path to medicine action files
+  ${catkin_INCLUDE_DIRS} ../../rosbuild/retrieve_medicine/msg_gen/cpp/include ../../rosbuild/serve_drink/msg_gen/cpp/include #relative path to medicine action files
 )
 
 ## Declare a cpp library

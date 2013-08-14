@@ -17,6 +17,7 @@
 
 #include <interactive_world_hackathon/LoadAction.h>
 #include <retrieve_medicine/RetrieveMedicineAction.h>
+#include <serve_drink/ServeDrinkAction.h>
 
 #include <vector>
 #include <string.h>
@@ -35,7 +36,7 @@ bool should_restart_medicine=false;
 //get the number of seconds since midnight from an hh:mm time string
 long int secondsFromStringTime(std::string time) {
   long int hours,minutes;
-  sscanf(time.c_str(),"%02d:%02d",&hours,&minutes);
+  sscanf(time.c_str(),"%02ld:%02ld",&hours,&minutes);
   return hours*3600+minutes*60;
 }
 
@@ -346,7 +347,7 @@ void get_medicine() {
 
 // Called once when the goal completes
 void drinkActionDoneCb(const actionlib::SimpleClientGoalState& state,
-            const retrieve_medicine::ServeDrinkResultConstPtr& result)
+            const serve_drink::ServeDrinkResultConstPtr& result)
 {
   ROS_INFO("Retrieve Drink Action Finished with status '%s'",result->result_msg.c_str());
 
@@ -541,7 +542,7 @@ int main(int argc, char **argv)
      {
        if (secondsFromStringTime(getCurrentStringTime()) == secondsFromStringTime(it->startTime)) {
          ROS_INFO("Found task %s of type %s! Attempting to execute",it->taskName.c_str(),it->taskType.c_str());
-         executeTask(*schedule);
+         executeTask(*it);
          break;
        }
      }     
