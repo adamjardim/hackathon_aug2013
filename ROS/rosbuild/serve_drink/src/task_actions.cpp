@@ -372,6 +372,7 @@ void taskActions::executeBackup(const serve_drink::BackupGoalConstPtr& goal)
 
 void taskActions::executePickupAll(const serve_drink::PickupAllGoalConstPtr& goal)
 {
+	ROS_INFO("open grippers");
 	//open grippers
 	pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
 	openGripper.command.position = 0.08;
@@ -379,6 +380,8 @@ void taskActions::executePickupAll(const serve_drink::PickupAllGoalConstPtr& goa
 	acLeftGripper.sendGoal(openGripper);
 	acRightGripper.sendGoal(openGripper);
 	
+
+	ROS_INFO("center head on table");
 	//center head on table
 	pr2_interactive_object_detection::UserCommandGoal segmentGoal;
 	segmentGoal.request = 0;	//look at table
@@ -386,7 +389,8 @@ void taskActions::executePickupAll(const serve_drink::PickupAllGoalConstPtr& goa
 	acSegment.waitForResult(ros::Duration(15));
 	
 	ros::Duration(5.0).sleep();
-	
+
+	ROS_INFO("segment");	
 	//segment
 	resetCollisionObjects();
 	segmentGoal.request = 1;	//segment
@@ -424,7 +428,7 @@ void taskActions::executePickupAll(const serve_drink::PickupAllGoalConstPtr& goa
 		
 		if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
 		{
-			ROS_INFO("Pickup succeeded, checking grasp...");
+		/*	ROS_INFO("Pickup succeeded, checking grasp...");
 			//check for successful grasp
 			interactive_world_hackathon::GraspCheck srv;
 			srv.request.side = "right";
@@ -437,7 +441,7 @@ void taskActions::executePickupAll(const serve_drink::PickupAllGoalConstPtr& goa
 				asPickupAllResult.success = false;
 				asPickupAll.setSucceeded(asPickupAllResult);
 				return;
-			}	
+			}	*/
 			
 			ROS_INFO("Grasp succeeded!");
 			//move arm to side
