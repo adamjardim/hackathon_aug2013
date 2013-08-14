@@ -339,6 +339,95 @@ void get_medicine() {
 }
 
 //////////end medicine task
+
+//////////drink task
+
+// Called once when the goal completes
+void drinkActionDoneCb(const actionlib::SimpleClientGoalState& state,
+            const retrieve_medicine::ServeDrinkResultConstPtr& result)
+{
+  ROS_INFO("Retrieve Medicine Action Finished with status '%s'",result->result_msg.c_str());
+
+  hackathon_scheduler::TaskStatus status;
+  status.taskName=taskName;
+  status.startTime=startTime;
+  status.message=result->result_msg;
+
+  if (state==actionlib::SimpleClientGoalState::SUCCEEDED) {
+    //determine whether we need teleop
+    if (result->success) {
+      status.status="success";
+      medicine_needs_teleop=false;
+      should_restart_medicine=false;
+    }
+    else {
+      status.status="teleop";
+      medicine_needs_teleop=true;
+    }
+    taskStatusPublisher->publish(status);
+  }
+  else {
+    status.status="failure";
+    taskStatusPublisher->publish(status);
+  }
+}
+
+// Called once when the goal becomes active
+void drinkActionActiveCb()
+{
+  medicine_needs_teleop=false;
+  ROS_INFO("Retrieve Medicine action just went active");
+  hackathon_scheduler::TaskStatus status;
+  status.taskName=taskName;
+  status.startTime=startTime;
+  status.status="executing";
+  status.message="starting to Retrieve Medicine";
+  taskStatusPublisher->publish(status);
+}
+
+// Called every time feedback is received for the goal
+void drinkActionFeedbackCb(const retrieve_medicine::RetrieveMedicineFeedbackConstPtr& feedback)
+{
+  ROS_INFO("Got retrieve medicine action feedback: '%s'",feedback->feedback_msg.c_str());
+  hackathon_scheduler::TaskStatus status;
+  status.taskName=taskName;
+  status.startTime=startTime;
+  status.status="executing";
+  status.message=feedback->feedback_msg;
+  taskStatusPublisher->publish(status);
+}
+
+void get_drink() {
+  ROS_INFO("Running medicine task");
+  //run the medicine task
+  actionlib::SimpleActionClient<retrieve_medicine::RetrieveMedicineAction> client("retrieve_medicine_action", true); // true -> don't need ros::spin()
+  client.waitForServer();
+  retrieve_medicine::RetrieveMedicineGoal goal;
+  client.sendGoal(goal, &medicineActionDoneCb,&medicineActionActiveCb,&medicineActionFeedbackCb);
+  //wait until success or failure
+  client.waitForResult();
+  //see if medicine task failed and we need to do teleop
+  if (medicine_needs_teleop) {
+    should_restart_medicine=false;
+    ros::Rate rate(5);
+    //spin until you receive a resume medicine message/servicecall, then restart get_medicine   
+    while (!should_restart_medicine) {
+      ros::spinOnce();
+      rate.sleep();
+    }
+    medicine_needs_teleop=false;
+    get_medicine();
+  }
+
+  //if success, finish
+  medicine_needs_teleop=false;
+  should_restart_medicine=false;
+
+  ROS_INFO("Medicine task finished");
+}
+
+//////////end medicine task
+
 //////////lunch task
 void lunchActionDoneCb(const actionlib::SimpleClientGoalState& state,
             const interactive_world_hackathon::LoadResultConstPtr& result)
