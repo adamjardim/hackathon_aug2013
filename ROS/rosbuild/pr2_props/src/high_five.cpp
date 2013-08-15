@@ -206,12 +206,7 @@ public:
     delete gripper_client_r_;
     delete place_client_l_;
     delete place_client_r_;
-
-
   }
-
-  
-
 
   //Open the gripper
   void open(bool left, bool right){
@@ -234,17 +229,14 @@ public:
     if(left)
     {
       gripper_client_l_->sendGoal(close);
-      if(wait_for_result)
-	gripper_client_l_->waitForResult();
+      if(wait_for_result) gripper_client_l_->waitForResult();
     }
     if(right)
     {
       gripper_client_r_->sendGoal(close);
-      if(wait_for_result)
-	gripper_client_r_->waitForResult();
+      if(wait_for_result) gripper_client_r_->waitForResult();
     }
   }
-
 
   //move into place mode to drop an object
   void slap(bool left, bool right){
@@ -272,9 +264,25 @@ public:
   }  
 };
 
-int main(int argc, char** argv){
-  ros::init(argc, argv, "lift_test");
+class HighFiveActionServer {
+private:
+  actionlib::SimpleActionServer<pr2_props::HighFiveAction> asHighFive;
+  RobotArm arm;
+  Gripper gripper;
 
+public:
+  HighFiveActionServer();
+
+  void executeHighFive(const pr2_props::HighFiveGoalConstPtr& goal);
+};
+
+HighFiveActionServer::HighFiveActionServer() :
+  asHighFive(n, "highfive_action", boost::bind(&HighFiveActionServer::executeHighFive, this, _1), false)
+{
+  asHighFive.start();
+}
+
+void HighFiveActionServer::executeHighFive(const pr2_props::HighFiveGoalConstPtr& goal) {
   // figure out what kind of five we want
   bool left = false;
   bool right = true;
@@ -284,42 +292,47 @@ int main(int argc, char** argv){
     right = (strcmp(argv[1],"right") == 0) || (strcmp(argv[1],"double") == 0);
   }
 
-  RobotArm arm;
-  Gripper gripper;
-
   gripper.close(left,right,true);
   
-    float pre_five_r []= {-1.4204039529994779, 0.64014688694872024, 0.64722849826846929, -1.9254939970572147, 30.931365914354672, -0.52166442520665446, -16.642483924162743 };
-    float pre_five_l []= {1.544791237364544, 0.028669297805660576, -0.061946460502633194, -1.9322034349027488, -0.96915535302752587, -0.22688029069077575, -3.5411348633607669};
-    if(left)
-      arm.startTrajectory(arm.arm_trajectoryPoint(pre_five_l,2.0,false),false);
-    if(right)
-      arm.startTrajectory(arm.arm_trajectoryPoint(pre_five_r,2.0,true),true);
-    sleep(2.0);
+  float pre_five_r []= {-1.4204039529994779, 0.64014688694872024, 0.64722849826846929, -1.9254939970572147, 30.931365914354672, -0.52166442520665446, -16.642483924162743 };
+  float pre_five_l []= {1.544791237364544, 0.028669297805660576, -0.061946460502633194, -1.9322034349027488, -0.96915535302752587, -0.22688029069077575, -3.5411348633607669};
+  if(left)
+    arm.startTrajectory(arm.arm_trajectoryPoint(pre_five_l,2.0,false),false);
+  if(right)
+    arm.startTrajectory(arm.arm_trajectoryPoint(pre_five_r,2.0,true),true);
+  sleep(2.0);
 
-    float five_r []= {-0.43912122996219438, -0.26865637196243625, -0.06073806015457861, -1.0597651429837187, 30.217764249732564, -0.098888248598895112, -17.139399300620212 };
-    float five_l []= {0.34795130919909756, -0.33483508677418122, 0.21450526015905091, -0.87161320330702452, -0.55300340950519367, -0.51138511922202357, -3.1737890509598912};
-    if(left)
-      arm.startTrajectory(arm.arm_trajectoryPoint(five_l,1.25,false),false);
-    if(right)
-      arm.startTrajectory(arm.arm_trajectoryPoint(five_r,1.25,true),true);
+  float five_r []= {-0.43912122996219438, -0.26865637196243625, -0.06073806015457861, -1.0597651429837187, 30.217764249732564, -0.098888248598895112, -17.139399300620212 };
+  float five_l []= {0.34795130919909756, -0.33483508677418122, 0.21450526015905091, -0.87161320330702452, -0.55300340950519367, -0.51138511922202357, -3.1737890509598912};
+  if(left)
+    arm.startTrajectory(arm.arm_trajectoryPoint(five_l,1.25,false),false);
+  if(right)
+    arm.startTrajectory(arm.arm_trajectoryPoint(five_r,1.25,true),true);
 
-    // now start looking for a slap during the move
-    gripper.slap(left,right);
+  // now start looking for a slap during the move
+  gripper.slap(left,right);
 
 
-    //wait for a slap
-    while(!gripper.slapDone(left,right) && ros::ok())
-    {
-      ros::Duration(0.005).sleep();
-    }
+  //wait for a slap
+  while(!gripper.slapDone(left,right) && ros::ok())
+  {
+    ros::Duration(0.005).sleep();
+  }
 
-    float post_five_r []= {-1.2271486279403441, 0.98994689398564029, 0.27937452657595019, -1.9855738422813785, 31.095246711685615, -0.75469820126008202, -17.206098475132887 };
-    float post_five_l []= {1.458651261930636, 1.0444005395208478, 0.081571109098415029, -2.1115743463069396, -1.3390296269894097, -0.16823026639652239, -3.5006715676681437};
-    if(left)
-      arm.startTrajectory(arm.arm_trajectoryPoint(post_five_l,1.35,false),false);
-    if(right)
-      arm.startTrajectory(arm.arm_trajectoryPoint(post_five_r,1.35,true),true);
+  float post_five_r []= {-1.2271486279403441, 0.98994689398564029, 0.27937452657595019, -1.9855738422813785, 31.095246711685615, -0.75469820126008202, -17.206098475132887 };
+  float post_five_l []= {1.458651261930636, 1.0444005395208478, 0.081571109098415029, -2.1115743463069396, -1.3390296269894097, -0.16823026639652239, -3.5006715676681437};
+  if(left)
+    arm.startTrajectory(arm.arm_trajectoryPoint(post_five_l,1.35,false),false);
+  if(right)
+    arm.startTrajectory(arm.arm_trajectoryPoint(post_five_r,1.35,true),true);
+}
+
+int main(int argc, char** argv){
+  ros::init(argc, argv, "high_five");
+
+  HighFiveActionServer highFiveActionServer;
+
+  ros::spin();
 
   return 0;
 }

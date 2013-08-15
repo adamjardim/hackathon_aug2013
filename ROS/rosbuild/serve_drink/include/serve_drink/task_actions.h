@@ -105,7 +105,7 @@ public:
 
 	taskActions();
 
-    void executeNavigate(const serve_drink::navigateGoalConstPtr& goal);
+  void executeNavigate(const serve_drink::navigateGoalConstPtr& goal);
     
 	void executeBackup(const serve_drink::BackupGoalConstPtr& goal);
     

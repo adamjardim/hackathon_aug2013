@@ -20,10 +20,9 @@ public:
     ServeDrinkActionServer = n.advertiseService("call_action", &sdClient::callAction, this);
 
     ROS_INFO("Done");
-  }
+  }  
   
-  
-   bool callAction(serve_drink::CallAction::Request &req, serve_drink::CallAction::Response &res);    
+  bool callAction(serve_drink::CallAction::Request &req, serve_drink::CallAction::Response &res);    
 };
 
 bool sdClient::callAction(serve_drink::CallAction::Request &req, serve_drink::CallAction::Response &res)
