@@ -1,5 +1,6 @@
 #goal
 string taskName
+bool saved
 bool align
 ---
 #result

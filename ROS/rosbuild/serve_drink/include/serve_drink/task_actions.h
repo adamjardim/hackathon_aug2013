@@ -11,6 +11,7 @@
 #include <serve_drink/BackupAction.h>
 #include <serve_drink/PickupAllAction.h>
 #include <serve_drink/ReleaseAction.h>
+#include <serve_drink/savePoseAction.h>
 #include <pr2_controllers_msgs/SingleJointPositionAction.h>
 #include <pr2_interactive_object_detection/UserCommandAction.h>
 #include <manipulation_msgs/GraspableObjectList.h>
@@ -71,6 +72,7 @@ public:
 	actionlib::SimpleActionServer<serve_drink::BackupAction> asBackup;
 	actionlib::SimpleActionServer<serve_drink::PickupAllAction> asPickupAll;
 	actionlib::SimpleActionServer<serve_drink::ReleaseAction> asRelease;
+	actionlib::SimpleActionServer<serve_drink::savePoseAction> asSavePose;
     
 	serve_drink::navigateFeedback asNavigateFeedback;
 	serve_drink::navigateResult asNavigateResult;
@@ -87,6 +89,9 @@ public:
 	serve_drink::ReleaseFeedback asReleaseFeedback;
 	serve_drink::ReleaseResult asReleaseResult;
 
+	serve_drink::savePoseFeedback asSavePoseFeedback;
+	serve_drink::savePoseResult asSavePoseResult;
+
 	//Arm positions
 	std::vector<double> leftArmSidePosition;
 	std::vector<double> rightArmSidePosition;
@@ -98,6 +103,7 @@ public:
 	std::vector<std::string> rightArmJointNames;
 	
 	geometry_msgs::Pose basePose;
+	geometry_msgs::Pose savedBasePose;
 	
 	//segmented objects
 	manipulation_msgs::GraspableObjectList objectList;
@@ -116,7 +122,9 @@ public:
 	void executeHandoff(const serve_drink::handoffGoalConstPtr& goal);
 
 	void executeRelease(const serve_drink::ReleaseGoalConstPtr& goal);
-	
+
+	void executeSavePose(const serve_drink::savePoseGoalConstPtr& goal);
+
 	void objectCallback(const manipulation_msgs::GraspableObjectList& objects);
 
 	void resetCollisionObjects();

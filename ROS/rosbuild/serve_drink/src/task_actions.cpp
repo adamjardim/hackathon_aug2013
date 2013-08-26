@@ -17,7 +17,8 @@ taskActions::taskActions() :
 	asHandoff(n, "handoff_action", boost::bind(&taskActions::executeHandoff, this, _1), false),
 	asBackup(n, "backup_action", boost::bind(&taskActions::executeBackup, this, _1), false),
 	asPickupAll(n, "pickup_all_action", boost::bind(&taskActions::executePickupAll, this, _1), false),
-	asRelease(n, "release_action", boost::bind(&taskActions::executeRelease, this, _1), false)
+	asRelease(n, "release_action", boost::bind(&taskActions::executeRelease, this, _1), false),
+	asSavePose(n, "save_pose_action", boost::bind(&taskActions::executeSavePose, this, _1), false)
 {
     hasRecognition = false;
 
@@ -82,29 +83,58 @@ taskActions::taskActions() :
     objectSubscriber = n.subscribe("/interactive_object_recognition_result", 1, &taskActions::objectCallback, this);
 }
 
+void taskActions::executeSavePose(const serve_drink::savePoseGoalConstPtr& goal)
+{
+	savedBasePose.position.x = basePose.position.x;
+	savedBasePose.position.y = basePose.position.y;
+	savedBasePose.position.z = basePose.position.z;
+	savedBasePose.orientation.x = basePose.orientation.x;
+	savedBasePose.orientation.y = basePose.orientation.y;
+	savedBasePose.orientation.z = basePose.orientation.z;
+	savedBasePose.orientation.w = basePose.orientation.w;
+
+	asSavePoseResult.result_msg = "Save Pose succeeded";
+	asSavePoseResult.success = true;
+	asSavePose.setSucceeded(asSavePoseResult);
+}
+
 void taskActions::executeNavigate(const serve_drink::navigateGoalConstPtr& goal)
 {
 	ROS_INFO("Goal task name: %s", goal->taskName.c_str());
 	
-	position_server::GetPosition srv;
-	srv.request.positionName = goal->taskName;
-	if (!position_client.call(srv))
-        {
-    		ROS_INFO("Invalid task name, action could not finish");
-    		asNavigate.setPreempted();
-    		return;
-    	}
-	
 	geometry_msgs::PoseStamped target;
-	target.header.frame_id = "/map";
-	target.pose.position.x = srv.response.position.pose.x;
-	target.pose.position.y = srv.response.position.pose.y;
-	target.pose.position.z = 0.0;
-	target.pose.orientation.x = 0.0;
-	target.pose.orientation.y = 0.0;
-	target.pose.orientation.z = sin(srv.response.position.pose.theta/2.0);
-	target.pose.orientation.w = cos(srv.response.position.pose.theta/2.0);
-    move_base_msgs::MoveBaseGoal moveGoal;
+	position_server::GetPosition srv;
+	float height = 0.0;
+
+	if (goal->saved) {
+		target.header.frame_id = "/map";
+		target.pose.position.x = savedBasePose.position.x;
+		target.pose.position.y = savedBasePose.position.y;
+		target.pose.position.z = 0.0;
+		target.pose.orientation.x = 0.0;
+		target.pose.orientation.y = 0.0;
+		target.pose.orientation.z = savedBasePose.orientation.z;
+		target.pose.orientation.w = savedBasePose.orientation.w;
+	} else {		
+		srv.request.positionName = goal->taskName;
+		if (!position_client.call(srv))
+	        {
+	    		ROS_INFO("Invalid task name, action could not finish");
+	    		asNavigate.setPreempted();
+	    		return;
+	    	}
+		
+		target.header.frame_id = "/map";
+		target.pose.position.x = srv.response.position.pose.x;
+		target.pose.position.y = srv.response.position.pose.y;
+		target.pose.position.z = 0.0;
+		target.pose.orientation.x = 0.0;
+		target.pose.orientation.y = 0.0;
+		target.pose.orientation.z = sin(srv.response.position.pose.theta/2.0);
+		target.pose.orientation.w = cos(srv.response.position.pose.theta/2.0);
+		height = srv.response.position.height;
+	}
+  move_base_msgs::MoveBaseGoal moveGoal;
 	
 	float dstToGoal = sqrt(pow(basePose.position.x - target.pose.position.x, 2) + pow(basePose.position.y - target.pose.position.y, 2));
 	float navSuccessThreshold = .3;
@@ -149,7 +179,7 @@ void taskActions::executeNavigate(const serve_drink::navigateGoalConstPtr& goal)
 	{
 		ROS_INFO("Untuck arms and adjust height");
 		pr2_controllers_msgs::SingleJointPositionGoal torsoGoal;
-		torsoGoal.position = srv.response.position.height;
+		torsoGoal.position = height;
 		if (torsoGoal.position < 0.0)
 			torsoGoal.position = 0.0;
 		else if (torsoGoal.position > 0.6)

@@ -37,6 +37,7 @@ bool serveDrink::executeNavigate(string dest, bool align, int nextState)
     serve_drink::navigateGoal navGoal;
     navGoal.taskName = dest;
     navGoal.align = align;
+    navGoal.saved = false;
     acNavigate.sendGoal(navGoal);
     acNavigate.waitForResult();
     serve_drink::navigateResultConstPtr navResult = acNavigate.getResult();
