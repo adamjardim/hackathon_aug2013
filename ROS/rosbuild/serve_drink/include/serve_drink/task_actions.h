@@ -101,7 +101,7 @@ public:
 	
 	//segmented objects
 	manipulation_msgs::GraspableObjectList objectList;
-	bool hasSegmented;
+    bool hasRecognition;
 
 	taskActions();
 

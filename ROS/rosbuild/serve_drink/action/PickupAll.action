@@ -1,4 +1,5 @@
 #goal
+int32 model_id
 ---
 #result
 bool success

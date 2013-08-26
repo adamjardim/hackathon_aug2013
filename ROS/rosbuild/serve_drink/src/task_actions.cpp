@@ -19,7 +19,7 @@ taskActions::taskActions() :
 	asPickupAll(n, "pickup_all_action", boost::bind(&taskActions::executePickupAll, this, _1), false),
 	asRelease(n, "release_action", boost::bind(&taskActions::executeRelease, this, _1), false)
 {
-	hasSegmented = false;
+    hasRecognition = false;
 
 	ROS_INFO("Waiting for move_base action server...");
 	acMoveBase.waitForServer();
@@ -79,7 +79,7 @@ taskActions::taskActions() :
 	rightArmHandoffPosition.assign(rightHandoffPos, rightHandoffPos + 7);
 	
 	basePoseSubscriber = n.subscribe("/robot_pose", 1, &taskActions::basePoseCallback, this);
-	objectSubscriber = n.subscribe("/interactive_object_recognition_result", 1, &taskActions::objectCallback, this);
+    objectSubscriber = n.subscribe("/interactive_object_recognition_result", 1, &taskActions::objectCallback, this);
 }
 
 void taskActions::executeNavigate(const serve_drink::navigateGoalConstPtr& goal)
@@ -398,15 +398,37 @@ void taskActions::executePickupAll(const serve_drink::PickupAllGoalConstPtr& goa
 	acSegment.waitForResult(ros::Duration(15));
 	
 	ros::Rate segmentRate(10);
-	while (hasSegmented == false)
+    while (hasRecognition == false)
 	{
 		segmentRate.sleep();
 	}
 	
 	ros::Duration(1.0).sleep();
 	
-	hasSegmented = false;
+    hasRecognition = false;
+
+    ROS_INFO("starting recognition");
+    segmentGoal.request = 2;
+    acSegment.sendGoal(segmentGoal);
+    acSegment.waitForResult(ros::Duration(10));
+
+    ros::Rate recognitionRate(10);
+    while(hasRecognition == false)
+    {
+        recognitionRate.sleep();
+    }
+
+    ros::Duration(1.0).sleep();
+
 	
+    ROS_INFO("There are %d recognizable objects", objectList.graspable_objects.size());
+
+    for (size_t m = 0 ; m < objectList.graspable_objects.size() ; m++ )
+    {
+        if ( !objectList.graspable_objects[m].potential_models.empty() )
+           ROS_INFO("Recognized objects model id: %d", objectList.graspable_objects[m].potential_models[0].model_id);
+    }
+
 	//pickup objects
 	if (objectList.graspable_objects.size() > 0)
 	{	
@@ -417,142 +439,80 @@ void taskActions::executePickupAll(const serve_drink::PickupAllGoalConstPtr& goa
 		imguiOptions.collision_checked = true;
 		imguiOptions.grasp_selection = 1;	//grasp provided object
 		imguiOptions.arm_selection = 0;	//TODO set this based on object position
-		imguiOptions.selected_object = objectList.graspable_objects[0]; //selected object
-		
-		imguiGoal.command.command = 0; 	//pickup
-		imguiGoal.options = imguiOptions;
-		
-		acIMGUI.sendGoal(imguiGoal);
-		
-		acIMGUI.waitForResult();
-		
-		if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-		{
-		/*	ROS_INFO("Pickup succeeded, checking grasp...");
-			//check for successful grasp
-			interactive_world_hackathon::GraspCheck srv;
-			srv.request.side = "right";
-			graspCheckClient.call(srv);
-			if (!srv.response.isGrasping)
-			{
-				ROS_INFO("Grasp failed");
-				ROS_INFO("Pickup All action failed");
-				asPickupAllResult.result_msg = "Pickup All failed";
-				asPickupAllResult.success = false;
-				asPickupAll.setSucceeded(asPickupAllResult);
-				return;
-			}	*/
-			
-			ROS_INFO("Grasp succeeded!");
-			//move arm to side
-			pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
-			pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
-	
-			imguiOptions.collision_checked = true;
-			imguiOptions.grasp_selection = 0;	//grasp provided object
-			imguiOptions.arm_selection = 0;	//TODO set this based on object position
-			imguiOptions.arm_action_choice = 0;	//move arm to side
-			imguiOptions.arm_planner_choice = 1;	//move arm with planner
-		
-			imguiGoal.command.command = 4; 	//move arm
-			imguiGoal.options = imguiOptions;
-		
-			acIMGUI.sendGoal(imguiGoal);
-		
-			acIMGUI.waitForResult();
-			
-			if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-			{
-			/*	ros::Duration(1.0).sleep();
-			
-				//segment
-				resetCollisionObjects();
-				segmentGoal.request = 1;	//segment
-				acSegment.sendGoal(segmentGoal);
-				acSegment.waitForResult(ros::Duration(15));
-				
-				while (hasSegmented == false)
-				{
-					segmentRate.sleep();
-				}
-				
-				ros::Duration(1.0).sleep();
-				
-				hasSegmented = false;
-				
-				//pickup objects
-				if (objectList.graspable_objects.size() > 0)
-				{	
-					ROS_INFO("Picking up object...");
-					pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
-					pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
-				
-					imguiOptions.collision_checked = true;
-					imguiOptions.grasp_selection = 1;	//grasp provided object
-					imguiOptions.arm_selection = 1;	//TODO set this based on object position
-					imguiOptions.selected_object = objectList.graspable_objects[0]; //selected object
-		
-					imguiGoal.command.command = 0; 	//pickup
-					imguiGoal.options = imguiOptions;
-		
-					acIMGUI.sendGoal(imguiGoal);
-		
-					acIMGUI.waitForResult();
-		
-					if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-					{
-						ROS_INFO("Pickup succeeded, checking grasp...");
-						//check for successful grasp
-						interactive_world_hackathon::GraspCheck srv;
-						srv.request.side = "left";
-						graspCheckClient.call(srv);
-						if (!srv.response.isGrasping)
-						{
-							ROS_INFO("Grasp failed");
-							ROS_INFO("Pickup All action failed");
-							asPickupAllResult.result_msg = "Pickup All failed";
-							asPickupAllResult.success = false;
-							asPickupAll.setSucceeded(asPickupAllResult);
-							return;
-						}
-						
-						ROS_INFO("Grasp succeeded!");
-						//move arm to side
-						pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
-						pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
-	
-						imguiOptions.collision_checked = true;
-						imguiOptions.grasp_selection = 0;	//grasp provided object
-						imguiOptions.arm_selection = 1;	//TODO set this based on object position
-						imguiOptions.arm_action_choice = 0;	//move arm to side
-						imguiOptions.arm_planner_choice = 1;	//move arm with planner
-		
-						imguiGoal.command.command = 4; 	//move arm
-						imguiGoal.options = imguiOptions;
-		
-						acIMGUI.sendGoal(imguiGoal);
-		
-						acIMGUI.waitForResult();
-			
-						if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-						{
-							ROS_INFO("Pickup All action succeeded");
-							asPickupAllResult.result_msg = "Pickup All succeeded";
-							asPickupAllResult.success = true;
-							asPickupAll.setSucceeded(asPickupAllResult);
-							return;
-						}
-					}
-				}*/
-				ROS_INFO("Pickup All action succeeded");
-							asPickupAllResult.result_msg = "Pickup All succeeded";
-							asPickupAllResult.success = true;
-							asPickupAll.setSucceeded(asPickupAllResult);
-							return;	
-			}
-		}
-	}
-	
+      //imguiOptions.selected_object = objectList.graspable_objects[0]; //selected object
+
+        bool grasp_object = false;
+
+        //select the desired object
+        for (size_t m = 0 ; m < objectList.graspable_objects.size() ; m++ )
+        {
+            ROS_INFO("%d, %d", objectList.graspable_objects[m].potential_models[0].model_id, goal->model_id );
+            if ( objectList.graspable_objects[m].potential_models[0].model_id == goal->model_id )
+                {
+                    imguiOptions.selected_object = objectList.graspable_objects[m];
+                    grasp_object = true;
+                }
+        }
+
+        if( grasp_object )
+        {
+
+            imguiGoal.command.command = 0; 	//pickup
+            imguiGoal.options = imguiOptions;
+
+            acIMGUI.sendGoal(imguiGoal);
+
+            acIMGUI.waitForResult();
+
+            if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+            {
+            /*	ROS_INFO("Pickup succeeded, checking grasp...");
+                //check for successful grasp
+                interactive_world_hackathon::GraspCheck srv;
+                srv.request.side = "right";
+                graspCheckClient.call(srv);
+                if (!srv.response.isGrasping)
+                {
+                    ROS_INFO("Grasp failed");
+                    ROS_INFO("Pickup All action failed");
+                    asPickupAllResult.result_msg = "Pickup All failed";
+                    asPickupAllResult.success = false;
+                    asPickupAll.setSucceeded(asPickupAllResult);
+                    return;
+                }	*/
+
+                ROS_INFO("Grasp succeeded!");
+                //move arm to side
+                pr2_object_manipulation_msgs::IMGUIGoal imguiGoal;
+                pr2_object_manipulation_msgs::IMGUIOptions imguiOptions;
+
+                imguiOptions.collision_checked = true;
+                imguiOptions.grasp_selection = 0;	//grasp provided object
+                imguiOptions.arm_selection = 0;	//TODO set this based on object position
+                imguiOptions.arm_action_choice = 0;	//move arm to side
+                imguiOptions.arm_planner_choice = 1;	//move arm with planner
+
+                imguiGoal.command.command = 4; 	//move arm
+                imguiGoal.options = imguiOptions;
+
+                acIMGUI.sendGoal(imguiGoal);
+
+                acIMGUI.waitForResult();
+
+                if (acIMGUI.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+                {
+                    ROS_INFO("Pickup All action succeeded");
+                    asPickupAllResult.result_msg = "Pickup All succeeded";
+                    asPickupAllResult.success = true;
+                    asPickupAll.setSucceeded(asPickupAllResult);
+                    return;
+                }
+            }
+        }
+        else ROS_INFO("There is not any desired object");
+    }
+    else
+        ROS_INFO("There is not any desired object");
 	ROS_INFO("Pickup All action failed");
 	asPickupAllResult.result_msg = "Pickup All failed";
 	asPickupAllResult.success = false;
@@ -591,7 +551,7 @@ void taskActions::objectCallback(const manipulation_msgs::GraspableObjectList& o
 	ROS_INFO("Received new object data");
 	objectList = objects;
 	ROS_INFO("Updated object data");
-	hasSegmented = true;
+    hasRecognition = true;
 }
 
 void taskActions::executeHandoff(const serve_drink::handoffGoalConstPtr& goal)
