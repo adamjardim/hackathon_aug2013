@@ -8,7 +8,7 @@ serveDrink::serveDrink() :
 	acBackup("/backup_action", true),
 	acPickupAll("/pickup_all_action", true),
 	acRelease("/release_action", true),
-    acHighfive("/high_five", true),
+    acHighfive("/highfive_action", true),
 	asServeDrink(n, "serve_drink_action", boost::bind(&serveDrink::executeServeDrink, this, _1), false)
 {
 	ROS_INFO("Waiting for navigate action server...");
@@ -58,10 +58,14 @@ bool serveDrink::executeNavigate(string dest, bool align, int nextState)
 
 bool serveDrink::executeHighfive(int nextState)
 {
+    ros::Duration(3.0).sleep();
+    ROS_INFO("sending highfive goal");
     pr2_props::HighFiveGoal highfiveGoal;
     acHighfive.sendGoal(highfiveGoal);
+    ROS_INFO("waiting for result of highfive action");
     acHighfive.waitForResult();
     pr2_props::HighFiveResultConstPtr highfiveResult = acHighfive.getResult();
+    ROS_INFO("get reuslt of high five action");
 
     if (highfiveResult->success == false)
     {
@@ -74,6 +78,8 @@ bool serveDrink::executeHighfive(int nextState)
     }
 
     state = nextState;
+     
+    ros::Duration(5.0).sleep();
 
     return true;
 }
@@ -167,6 +173,11 @@ void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& go
     if( state == STATE_PICKUP )
     {
         if ( !executePickup(18783, STATE_BACKUP) ) return;
+    }
+
+    if( state == STATE_BACKUP )
+    {
+	if( !executeBackup(STATE_NAVIGATION_2) ) return;
     }
 
     if( state == STATE_NAVIGATION_2 )

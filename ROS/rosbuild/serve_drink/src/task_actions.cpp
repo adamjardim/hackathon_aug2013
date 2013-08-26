@@ -444,15 +444,17 @@ void taskActions::executePickupAll(const serve_drink::PickupAllGoalConstPtr& goa
         bool grasp_object = false;
 
         //select the desired object
-        for (size_t m = 0 ; m < objectList.graspable_objects.size() ; m++ )
-        {
-            ROS_INFO("%d, %d", objectList.graspable_objects[m].potential_models[0].model_id, goal->model_id );
-            if ( objectList.graspable_objects[m].potential_models[0].model_id == goal->model_id )
-                {
-                    imguiOptions.selected_object = objectList.graspable_objects[m];
-                    grasp_object = true;
-                }
-        }
+     //   for (size_t m = 0 ; m < objectList.graspable_objects.size() ; m++ )
+     //   {
+     //       ROS_INFO("%d, %d", objectList.graspable_objects[m].potential_models[0].model_id, goal->model_id );
+     //       if ( objectList.graspable_objects[m].potential_models[0].model_id == goal->model_id )
+     //           {
+     //               imguiOptions.selected_object = objectList.graspable_objects[m];
+     //               grasp_object = true;
+     //           }
+     //   }
+        imguiOptions.selected_object = objectList.graspable_objects[0];
+	grasp_object = true;
 
         if( grasp_object )
         {
