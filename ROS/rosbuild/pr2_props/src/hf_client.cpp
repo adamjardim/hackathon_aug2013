@@ -2,7 +2,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
 #include <pr2_props/HighFiveAction.h>
-#include <pr2_props/CallAction.h>
+#include <pr2_props/DoHighfive.h>
 
 class HfClient
 {
@@ -17,15 +17,15 @@ public:
     ac.waitForServer();
     ROS_INFO("Done");
     ROS_INFO("Advertising services...");
-    highFiveActionServer = n.advertiseService("call_action", &HfClient::callAction, this);
+    highFiveActionServer = n.advertiseService("do_highfive", &HfClient::callAction, this);
 
     ROS_INFO("Done");
   }  
   
-  bool callAction(pr2_props::CallAction::Request &req, pr2_props::CallAction::Response &res);    
+  bool callAction(pr2_props::DoHighfive::Request &req, pr2_props::DoHighfive::Response &res);    
 };
 
-bool HfClient::callAction(pr2_props::CallAction::Request &req, pr2_props::CallAction::Response &res)
+bool HfClient::callAction(pr2_props::DoHighfive::Request &req, pr2_props::DoHighfive::Response &res)
 {
    pr2_props::HighFiveGoal goal;
    ac.sendGoal(goal);
