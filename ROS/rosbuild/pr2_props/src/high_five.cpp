@@ -42,9 +42,12 @@
 #include <pr2_controllers_msgs/Pr2GripperCommandAction.h>
 #include <pr2_gripper_sensor_msgs/PR2GripperEventDetectorAction.h>
 #include <actionlib/client/simple_action_client.h>
+#include <actionlib/server/simple_action_server.h>
 #include <pr2_controllers_msgs/JointTrajectoryAction.h>
+#include <pr2_props/HighFiveAction.h>
+#include <std_srvs/Empty.h>
 
-typedef actionlib::SimpleActionClient< pr2_controllers_msgs::JointTrajectoryAction > TrajClient;
+typedef actionlib::SimpleActionClient<pr2_controllers_msgs::JointTrajectoryAction> TrajClient;
 // Our Action interface type, provided as a typedef for convenience                   
 typedef actionlib::SimpleActionClient<pr2_gripper_sensor_msgs::PR2GripperEventDetectorAction> PlaceClient;
 // Our Action interface type, provided as a typedef for convenience                   
@@ -266,9 +269,13 @@ public:
 
 class HighFiveActionServer {
 private:
+  ros::NodeHandle n;
   actionlib::SimpleActionServer<pr2_props::HighFiveAction> asHighFive;
   RobotArm arm;
   Gripper gripper;
+
+  pr2_props::HighFiveFeedback asHighFiveFeedback;
+  pr2_props::HighFiveResult asHighFiveResult;
 
 public:
   HighFiveActionServer();
@@ -284,14 +291,9 @@ HighFiveActionServer::HighFiveActionServer() :
 
 void HighFiveActionServer::executeHighFive(const pr2_props::HighFiveGoalConstPtr& goal) {
   // figure out what kind of five we want
-  bool left = false;
+  bool left = true;
   bool right = true;
-  if(argc > 1)
-  {
-    left =  (strcmp(argv[1],"left") == 0) || (strcmp(argv[1],"double") == 0);
-    right = (strcmp(argv[1],"right") == 0) || (strcmp(argv[1],"double") == 0);
-  }
-
+  
   gripper.close(left,right,true);
   
   float pre_five_r []= {-1.4204039529994779, 0.64014688694872024, 0.64722849826846929, -1.9254939970572147, 30.931365914354672, -0.52166442520665446, -16.642483924162743 };
@@ -321,10 +323,24 @@ void HighFiveActionServer::executeHighFive(const pr2_props::HighFiveGoalConstPtr
 
   float post_five_r []= {-1.2271486279403441, 0.98994689398564029, 0.27937452657595019, -1.9855738422813785, 31.095246711685615, -0.75469820126008202, -17.206098475132887 };
   float post_five_l []= {1.458651261930636, 1.0444005395208478, 0.081571109098415029, -2.1115743463069396, -1.3390296269894097, -0.16823026639652239, -3.5006715676681437};
+
   if(left)
     arm.startTrajectory(arm.arm_trajectoryPoint(post_five_l,1.35,false),false);
   if(right)
     arm.startTrajectory(arm.arm_trajectoryPoint(post_five_r,1.35,true),true);
+
+  ROS_INFO("High Five Task has been succeeded");
+  asHighFiveResult.result_msg = "High Five Task has been .";
+  asHighFiveResult.success = true;
+  asHighFive.setSucceeded(asHighFiveResult);
+
+  std_srvs::Empty::Request req;
+  std_srvs::Empty::Response resp;
+
+  ROS_INFO("Stopping Motor Output");
+  ros::service::call("/l_gripper_sensor_controller/stop_motor_output",req,resp);
+  ros::service::call("/r_gripper_sensor_controller/stop_motor_output",req,resp);  
+  return;
 }
 
 int main(int argc, char** argv){

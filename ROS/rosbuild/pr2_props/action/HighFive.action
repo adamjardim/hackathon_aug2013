@@ -1,0 +1,8 @@
+#goal
+---
+#result
+bool success
+string result_msg
+---
+#feedback
+string feedback_msg
