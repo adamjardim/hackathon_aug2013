@@ -65,7 +65,7 @@ taskActions::taskActions() :
     graspCheckClient = n.serviceClient<interactive_world_hackathon::GraspCheck>("interactive_world_hackathon/grasp_check");
     
     //Define arm joint positions
-	string rightJoints[] = {"r_shoulder_pan_joint", "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint", "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint"};
+    string rightJoints[] = {"r_shoulder_pan_joint", "r_shoulder_lift_joint", "r_upper_arm_roll_joint", "r_elbow_flex_joint", "r_forearm_roll_joint", "r_wrist_flex_joint", "r_wrist_roll_joint"};
 	string leftJoints[] = {"l_shoulder_pan_joint", "l_shoulder_lift_joint", "l_upper_arm_roll_joint", "l_elbow_flex_joint", "l_forearm_roll_joint", "l_wrist_flex_joint", "l_wrist_roll_joint"};
 	leftArmJointNames.assign(leftJoints, leftJoints + 7);
 	rightArmJointNames.assign(rightJoints, rightJoints + 7);
@@ -104,7 +104,7 @@ void taskActions::executeNavigate(const serve_drink::navigateGoalConstPtr& goal)
 	target.pose.orientation.y = 0.0;
 	target.pose.orientation.z = sin(srv.response.position.pose.theta/2.0);
 	target.pose.orientation.w = cos(srv.response.position.pose.theta/2.0);
-	move_base_msgs::MoveBaseGoal moveGoal;
+    move_base_msgs::MoveBaseGoal moveGoal;
 	
 	float dstToGoal = sqrt(pow(basePose.position.x - target.pose.position.x, 2) + pow(basePose.position.y - target.pose.position.y, 2));
 	float navSuccessThreshold = .3;
@@ -308,7 +308,7 @@ void taskActions::executeNavigate(const serve_drink::navigateGoalConstPtr& goal)
 			}		
 			
 			ROS_INFO("Navigate action succeeded");
-			asNavigateResult.result_msg = "Navigation succeeded";
+            asNavigateResult.result_msg = "Navigation succeeded";
 			asNavigateResult.success = true;
 			asNavigate.setSucceeded(asNavigateResult);
 		}

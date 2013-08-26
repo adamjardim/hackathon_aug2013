@@ -21,6 +21,7 @@
 	<depend package="manipulation_msgs"/>
 	<depend package="trajectory_msgs"/>
         <depend package="interactive_world_hackathon"/>
+        <depend package="pr2_props"/>
 
 	<depend package="position_server"/> 
 
