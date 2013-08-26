@@ -8,6 +8,7 @@ serveDrink::serveDrink() :
 	acBackup("/backup_action", true),
 	acPickupAll("/pickup_all_action", true),
 	acRelease("/release_action", true),
+    acHighfive("/high_five", true),
 	asServeDrink(n, "serve_drink_action", boost::bind(&serveDrink::executeServeDrink, this, _1), false)
 {
 	ROS_INFO("Waiting for navigate action server...");
@@ -22,149 +23,166 @@ serveDrink::serveDrink() :
 	acBackup.waitForServer();
 	ROS_INFO("Finished waiting for backup action server.");
 	
-	ROS_INFO("Waiting for pickup all action server...");
+    ROS_INFO("Waiting for pickup all action server...string");
 	acPickupAll.waitForServer();
 	ROS_INFO("Finished waiting for pickup all action server.");
 
 	asServeDrink.start();
 	
-	state = STATE_NAVIGATION_1;
+    state = STATE_NAVIGATION_0;
 }
+
+bool serveDrink::executeNavigate(string dest, bool align, int nextState)
+{
+    serve_drink::navigateGoal navGoal;
+    navGoal.taskName = dest;
+    navGoal.align = align;
+    acNavigate.sendGoal(navGoal);
+    acNavigate.waitForResult();
+    serve_drink::navigateResultConstPtr navResult = acNavigate.getResult();
+
+    if (navResult->success == false)
+    {
+        state = nextState;
+        ROS_INFO("Navigate to %s action failed", dest.c_str());
+        asServeDrinkResult.result_msg = "Navigation to " + dest + "failed, please complete the task manually.";
+        asServeDrinkResult.success = false;
+        asServeDrink.setSucceeded(asServeDrinkResult);
+        return false;
+    }
+
+    state = nextState;
+
+    return true;
+}
+
+bool serveDrink::executeHighfive(int nextState)
+{
+    pr2_props::HighFiveGoal highfiveGoal;
+    acHighfive.sendGoal(highfiveGoal);
+    acHighfive.waitForResult();
+    pr2_props::HighFiveResultConstPtr highfiveResult = acHighfive.getResult();
+
+    if (highfiveResult->success == false)
+    {
+        state = nextState;
+        ROS_INFO("Highfive action failed");
+        asServeDrinkResult.result_msg = "Highfive action failed, please complete the task manually.";
+        asServeDrinkResult.success = false;
+        asServeDrink.setSucceeded(asServeDrinkResult);
+        return false;
+    }
+
+    state = nextState;
+
+    return true;
+}
+
+
+bool serveDrink::executePickup(int model_id, int nextState)
+{
+    serve_drink::PickupAllGoal pickupGoal;
+    pickupGoal.model_id = model_id;
+    acPickupAll.sendGoal(pickupGoal);
+    acPickupAll.waitForResult();
+    serve_drink::PickupAllResultConstPtr pickupResult = acPickupAll.getResult();
+
+    if (pickupResult->success == false)
+    {
+        state = nextState;
+        ROS_INFO("Pickup %d action failed", model_id);
+        asServeDrinkResult.result_msg = "pickup failed, please complete the task manually.";
+        asServeDrinkResult.success = false;
+        asServeDrink.setSucceeded(asServeDrinkResult);
+        return false;
+    }
+
+    state = nextState;
+
+    return true;
+}
+
+bool serveDrink::executeBackup(int nextState)
+{
+    serve_drink::BackupGoal backupGoal;
+    acBackup.sendGoal(backupGoal);
+    acBackup.waitForResult();
+    serve_drink::BackupResultConstPtr backupResult = acBackup.getResult();
+
+    if (backupResult->success == false)
+    {
+        state = nextState;
+        ROS_INFO("Backup action failed");
+        asServeDrinkResult.result_msg = "Backup failed, please complete the task manually.";
+        asServeDrinkResult.success = false;
+        asServeDrink.setSucceeded(asServeDrinkResult);
+        return false;
+    }
+
+    state = nextState;
+
+    return true;
+}
+
+bool serveDrink::executeRelease(int nextState)
+{
+    serve_drink::ReleaseGoal releaseGoal;
+    acRelease.sendGoal(releaseGoal);
+    acRelease.waitForResult();
+    serve_drink::ReleaseResultConstPtr releaseResult = acRelease.getResult();
+
+    if (releaseResult->success == false)
+    {
+        state = nextState;
+        ROS_INFO("Handoff action failed");
+        asServeDrinkResult.result_msg = "Handoff action failed, please complete the task manually.";
+        asServeDrinkResult.success = false;
+        asServeDrink.setSucceeded(asServeDrinkResult);
+        return false;
+    }
+
+    state = nextState;
+
+    return true;
+}
+
 
 void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& goal)
 {
-	//Navigate to medicine counter and align to counter
-	if (state == STATE_NAVIGATION_1)
-	{
-		serve_drink::navigateGoal navGoal;
-		navGoal.taskName = "Serve Table Nav";
-		navGoal.align = true;
-		acNavigate.sendGoal(navGoal);
-		acNavigate.waitForResult();
-		serve_drink::navigateResultConstPtr navResult = acNavigate.getResult();
+    if( state == STATE_NAVIGATION_0 )
+    {
+        if( !executeNavigate("Stage Front", false, STATE_HIGHFIVE)) return;
+    }
 
-		if (navResult->success == false)
-		{
-			state = STATE_PICKUP;
-			ROS_INFO("Navigate to Medicine Counter action failed");
-			asServeDrinkResult.result_msg = "Navigation to medicine counter failed, please complete the task manually.";
-			asServeDrinkResult.success = false;
-			asServeDrink.setSucceeded(asServeDrinkResult);
-			return;
-		}
-		
-		state = STATE_PICKUP;
-	}
-	
-	//Pickup medicine and water from counter
-	if (state == STATE_PICKUP)
-	{
-		serve_drink::PickupAllGoal pickupGoal;
-		acPickupAll.sendGoal(pickupGoal);
-		acPickupAll.waitForResult();
-		serve_drink::PickupAllResultConstPtr pickupResult = acPickupAll.getResult();
+    if( state == STATE_HIGHFIVE )
+    {
+        if( !executeHighfive(STATE_NAVIGATION_1)) return;
+    }
 
-		if (pickupResult->success == false)
-		{
-			state = STATE_BACKUP;
-			ROS_INFO("Pickup Medicine and Water action failed");
-			asServeDrinkResult.result_msg = "Medicine and water pickup failed, please complete the task manually.";
-			asServeDrinkResult.success = false;
-			asServeDrink.setSucceeded(asServeDrinkResult);
-			return;
-		}
-		
-		state = STATE_BACKUP;
-	}
-	
-	//Backup from medicine counter and tuck arms
-	if (state == STATE_BACKUP)
-	{
-		serve_drink::BackupGoal backupGoal;
-		acBackup.sendGoal(backupGoal);
-		acBackup.waitForResult();
-		serve_drink::BackupResultConstPtr backupResult = acBackup.getResult();
+    if( state == STATE_NAVIGATION_1 )
+    {
+        if ( !executeNavigate("Serve Table Nav", true, STATE_PICKUP) ) return;
+    }
 
-		if (backupResult->success == false)
-		{
-			state = STATE_NAVIGATION_2;
-			ROS_INFO("Backup action failed");
-			asServeDrinkResult.result_msg = "Backup from medicine counter failed, please complete the task manually.";
-			asServeDrinkResult.success = false;
-			asServeDrink.setSucceeded(asServeDrinkResult);
-			return;
-		}
-		
-		state = STATE_NAVIGATION_2;
-	}
-	
-	if (state == STATE_NAVIGATION_2)
-	{
-		serve_drink::navigateGoal navGoal;
-		navGoal.taskName = "Stage Front";
-		navGoal.align = false;
-		acNavigate.sendGoal(navGoal);
-		acNavigate.waitForResult();
-		serve_drink::navigateResultConstPtr navResult = acNavigate.getResult();
+    if( state == STATE_PICKUP )
+    {
+        if ( !executePickup(18783, STATE_BACKUP) ) return;
+    }
 
-		if (navResult->success == false)
-		{
-			state = STATE_HANDOFF;
-			ROS_INFO("Navigate to Couch action failed");
-			asServeDrinkResult.result_msg = "Navigation to couch failed, please complete the task manually.";
-			asServeDrinkResult.success = false;
-			asServeDrink.setSucceeded(asServeDrinkResult);
-			return;
-		}
-		
-		state = STATE_HANDOFF;
-	}
-	
-	if (state == STATE_HANDOFF)
-	{
-		/*
-		serve_drink::handoffGoal handGoal;
-		acHandoff.sendGoal(handGoal);
-		acHandoff.waitForResult();
-		serve_drink::handoffResultConstPtr handResult = acHandoff.getResult();
+    if( state == STATE_NAVIGATION_2 )
+    {
+        if( !executeNavigate("Stage Front", false, STATE_HANDOFF) ) return;
+    }
 
-		if (handResult->success == false)
-		{
-			state = STATE_NAVIGATION_1;
-			ROS_INFO("Medicine and Water Handoff action failed");
-			asServeDrinkResult.result_msg = "Medicine and water delivery failed, please complete the task manually.";
-			asServeDrinkResult.success = false;
-			asServeDrink.setSucceeded(asServeDrinkResult);
-			return;
-		}
-		
-		//state = STATE_NAVIGATION_1;
-		ROS_INFO("Retrieve Medicine action succeeded");
-		asServeDrinkResult.result_msg = "Retrieve Medicine action succeeded";
-		asServeDrinkResult.success = true;
-		asServeDrink.setSucceeded(asServeDrinkResult);
-		*/
-		serve_drink::ReleaseGoal releaseGoal;
-		acRelease.sendGoal(releaseGoal);
-		acRelease.waitForResult();
-		serve_drink::ReleaseResultConstPtr releaseResult = acRelease.getResult();
+    if( state == STATE_HANDOFF )
+    {
+        if( !executeRelease(STATE_NAVIGATION_0) ) return;
+    }
 
-		if (releaseResult->success == false)
-		{
-			state = STATE_NAVIGATION_1;
-			ROS_INFO("Medicine and Water Handoff action failed");
-			asServeDrinkResult.result_msg = "Medicine and water delivery failed, please complete the task manually.";
-			asServeDrinkResult.success = false;
-			asServeDrink.setSucceeded(asServeDrinkResult);
-			return;
-		}
-		
-		state = STATE_NAVIGATION_1;
-		ROS_INFO("Retrieve Medicine action succeeded");
-		asServeDrinkResult.result_msg = "Retrieve Medicine action succeeded";
-		asServeDrinkResult.success = true;
-		asServeDrink.setSucceeded(asServeDrinkResult);
-	}
+    ROS_INFO("Serve Drink action succeeded");
+    asServeDrinkResult.result_msg = "Serve Drink action succeeded";
+    asServeDrinkResult.success = true;
+    asServeDrink.setSucceeded(asServeDrinkResult);
 }
 
 int main(int argc, char **argv)
