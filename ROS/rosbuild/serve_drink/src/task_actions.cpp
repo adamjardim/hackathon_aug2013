@@ -59,6 +59,7 @@ taskActions::taskActions() :
 	asBackup.start();
 	asPickupAll.start();
 	asRelease.start();
+    asSavePose.start();
 
 	baseCommandPublisher = n.advertise<geometry_msgs::Twist>("/base_controller/command", -1);
 

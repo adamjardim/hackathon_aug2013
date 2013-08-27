@@ -24,9 +24,13 @@ serveDrink::serveDrink() :
 	acBackup.waitForServer();
 	ROS_INFO("Finished waiting for backup action server.");
 	
-    ROS_INFO("Waiting for pickup all action server...string");
+    ROS_INFO("Waiting for pickup all action server...");
 	acPickupAll.waitForServer();
 	ROS_INFO("Finished waiting for pickup all action server.");
+
+    ROS_INFO("Waiting for save pose action server...");
+    acPickupAll.waitForServer();
+    ROS_INFO("Finished waiting for save pose action server.");
 
 	asServeDrink.start();
 	
