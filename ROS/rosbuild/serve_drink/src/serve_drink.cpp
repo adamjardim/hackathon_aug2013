@@ -34,7 +34,7 @@ serveDrink::serveDrink() :
 
 	asServeDrink.start();
 	
-    state = SAVE_POSE;
+    state = STATE_HIGHFIVE;
 }
 
 bool serveDrink::executeSavePose(int nextState)
@@ -185,6 +185,11 @@ bool serveDrink::executeRelease(int nextState)
 
 void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& goal)
 {
+    if( state == STATE_HIGHFIVE )
+    {
+        if( !executeHighfive(STATE_HIGHFIVE) ) return;
+    }
+
     if( state == SAVE_POSE )
     {
         if( !executeSavePose(STATE_NAVIGATION_1)) return;
@@ -212,7 +217,7 @@ void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& go
 
     if( state == STATE_HANDOFF )
     {
-        if( !executeRelease(SAVE_POSE) ) return;
+        if( !executeRelease(STATE_HIGHFIVE) ) return;
     }
 
     ROS_INFO("Serve Drink action succeeded");
