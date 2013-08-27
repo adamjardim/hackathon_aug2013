@@ -187,7 +187,7 @@ void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& go
 {
     if( state == STATE_HIGHFIVE )
     {
-        if( !executeHighfive(STATE_HIGHFIVE) ) return;
+        if( !executeHighfive(SAVE_POSE) ) return;
     }
 
     if( state == SAVE_POSE )
