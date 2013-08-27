@@ -35,9 +35,11 @@ serveDrink::serveDrink() :
 
 bool serveDrink::executeSavePose(int nextState)
 {
+    ROS_INFO("send savePose Goal to savePoseAction");
     serve_drink::savePoseGoal savePoseGoal;
     acSavePose.sendGoal(savePoseGoal);
     acSavePose.waitForResult();
+    ROS_INFO("waiting for result");
     serve_drink::savePoseResultConstPtr savePoseResult = acSavePose.getResult();
 
     if( savePoseResult->success == false)
@@ -49,6 +51,8 @@ bool serveDrink::executeSavePose(int nextState)
         asServeDrink.setSucceeded(asServeDrinkResult);
         return false;
     }
+
+    state = nextState;
 
     return true;
 

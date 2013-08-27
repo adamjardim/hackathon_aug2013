@@ -85,6 +85,7 @@ taskActions::taskActions() :
 
 void taskActions::executeSavePose(const serve_drink::savePoseGoalConstPtr& goal)
 {
+    ROS_INFO("saving pose now");
 	savedBasePose.position.x = basePose.position.x;
 	savedBasePose.position.y = basePose.position.y;
 	savedBasePose.position.z = basePose.position.z;
@@ -96,6 +97,7 @@ void taskActions::executeSavePose(const serve_drink::savePoseGoalConstPtr& goal)
 	asSavePoseResult.result_msg = "Save Pose succeeded";
 	asSavePoseResult.success = true;
 	asSavePose.setSucceeded(asSavePoseResult);
+    ROS_INFO("succeed");
 }
 
 void taskActions::executeNavigate(const serve_drink::navigateGoalConstPtr& goal)
