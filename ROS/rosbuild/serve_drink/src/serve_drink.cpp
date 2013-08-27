@@ -9,6 +9,7 @@ serveDrink::serveDrink() :
 	acPickupAll("/pickup_all_action", true),
 	acRelease("/release_action", true),
     acHighfive("/highfive_action", true),
+    acSavePose("/save_pose_action", true),
 	asServeDrink(n, "serve_drink_action", boost::bind(&serveDrink::executeServeDrink, this, _1), false)
 {
 	ROS_INFO("Waiting for navigate action server...");
@@ -29,19 +30,39 @@ serveDrink::serveDrink() :
 
 	asServeDrink.start();
 	
-    state = STATE_NAVIGATION_0;
+    state = SAVE_POSE;
 }
 
-bool serveDrink::executeNavigate(string dest, bool align, int nextState)
+bool serveDrink::executeSavePose(int nextState)
+{
+    serve_drink::savePoseGoal savePoseGoal;
+    acSavePose.sendGoal(savePoseGoal);
+    acSavePose.waitForResult();
+    serve_drink::savePoseResultConstPtr savePoseResult = acSavePose.getResult();
+
+    if( savePoseResult->success == false)
+    {
+        state = nextState;
+        ROS_INFO("Save Pose action failed");
+        asServeDrinkResult.result_msg = "Save Pose actoin failed";
+        asServeDrinkResult.success = false;
+        asServeDrink.setSucceeded(asServeDrinkResult);
+        return false;
+    }
+
+    return true;
+
+}
+
+bool serveDrink::executeNavigate(string dest, bool align, bool saved, int nextState)
 {
     serve_drink::navigateGoal navGoal;
     navGoal.taskName = dest;
     navGoal.align = align;
-    navGoal.saved = false;
+    navGoal.saved = saved;
     acNavigate.sendGoal(navGoal);
     acNavigate.waitForResult();
     serve_drink::navigateResultConstPtr navResult = acNavigate.getResult();
-
     if (navResult->success == false)
     {
         state = nextState;
@@ -156,19 +177,14 @@ bool serveDrink::executeRelease(int nextState)
 
 void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& goal)
 {
-    if( state == STATE_NAVIGATION_0 )
+    if( state == SAVE_POSE )
     {
-        if( !executeNavigate("Stage Front", false, STATE_HIGHFIVE)) return;
-    }
-
-    if( state == STATE_HIGHFIVE )
-    {
-        if( !executeHighfive(STATE_NAVIGATION_1)) return;
+        if( !executeSavePose(STATE_NAVIGATION_1)) return;
     }
 
     if( state == STATE_NAVIGATION_1 )
     {
-        if ( !executeNavigate("Serve Table Nav", true, STATE_PICKUP) ) return;
+        if ( !executeNavigate("Serve Table Nav", true, false, STATE_PICKUP) ) return;
     }
 
     if( state == STATE_PICKUP )
@@ -183,12 +199,12 @@ void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& go
 
     if( state == STATE_NAVIGATION_2 )
     {
-        if( !executeNavigate("Stage Front", false, STATE_HANDOFF) ) return;
+        if( !executeNavigate("Stage Front", false, true, STATE_HANDOFF) ) return;
     }
 
     if( state == STATE_HANDOFF )
     {
-        if( !executeRelease(STATE_NAVIGATION_0) ) return;
+        if( !executeRelease(SAVE_POSE) ) return;
     }
 
     ROS_INFO("Serve Drink action succeeded");
