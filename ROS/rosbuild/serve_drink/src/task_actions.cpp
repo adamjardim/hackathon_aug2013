@@ -18,7 +18,8 @@ taskActions::taskActions() :
 	asBackup(n, "backup_action", boost::bind(&taskActions::executeBackup, this, _1), false),
 	asPickupAll(n, "pickup_all_action", boost::bind(&taskActions::executePickupAll, this, _1), false),
 	asRelease(n, "release_action", boost::bind(&taskActions::executeRelease, this, _1), false),
-	asSavePose(n, "save_pose_action", boost::bind(&taskActions::executeSavePose, this, _1), false)
+    asSavePose(n, "save_pose_action", boost::bind(&taskActions::executeSavePose, this, _1), false),
+    asTTS(n, "tts_action", boost::bind(&taskActions::executeTTS, this, _1), false)
 {
     hasRecognition = false;
 
@@ -60,6 +61,7 @@ taskActions::taskActions() :
 	asPickupAll.start();
 	asRelease.start();
     asSavePose.start();
+    asTTS.start();
 
 	baseCommandPublisher = n.advertise<geometry_msgs::Twist>("/base_controller/command", -1);
 
@@ -82,6 +84,20 @@ taskActions::taskActions() :
 	
 	basePoseSubscriber = n.subscribe("/robot_pose", 1, &taskActions::basePoseCallback, this);
     objectSubscriber = n.subscribe("/interactive_object_recognition_result", 1, &taskActions::objectCallback, this);
+}
+
+void taskActions::executeTTS(const serve_drink::TTSGoalConstPtr &goal)
+{
+    ROS_INFO("The robot are saying %s", goal->text.c_str());
+    std::stringstream ss;
+    ss << "pico2wave -w=/tmp/speak.wav \"" << goal->text << "\"";
+    system(ss.str().c_str());
+    system("aplay /tmp/speak.wav");
+    system("rm /tmp/speak.wav");
+
+    asTTSResult.result_msg = "Save Pose succeeded";
+    asTTSResult.success = true;
+    asTTS.setSucceeded(asTTSResult);
 }
 
 void taskActions::executeSavePose(const serve_drink::savePoseGoalConstPtr& goal)

@@ -10,6 +10,7 @@ serveDrink::serveDrink() :
 	acRelease("/release_action", true),
     acHighfive("/highfive_action", true),
     acSavePose("/save_pose_action", true),
+    acTTS("tts_action", true),
 	asServeDrink(n, "serve_drink_action", boost::bind(&serveDrink::executeServeDrink, this, _1), false)
 {
 	ROS_INFO("Waiting for navigate action server...");
@@ -29,12 +30,36 @@ serveDrink::serveDrink() :
 	ROS_INFO("Finished waiting for pickup all action server.");
 
     ROS_INFO("Waiting for save pose action server...");
-    acPickupAll.waitForServer();
+    acSavePose.waitForServer();
     ROS_INFO("Finished waiting for save pose action server.");
+
+    ROS_INFO("Waiting for tts action server...");
+    acTTS.waitForServer();
+    ROS_INFO("Finished waiting for tts action server.");
 
 	asServeDrink.start();
 	
     state = STATE_HIGHFIVE;
+}
+
+bool serveDrink::executeTTS(string text)
+{
+    serve_drink::TTSGoal ttsGoal;
+    ttsGoal.text = text;
+    acTTS.sendGoal(ttsGoal);
+    acTTS.waitForResult();
+    serve_drink::TTSResultConstPtr ttsResult = acTTS.getResult();
+
+    if( ttsResult->success == false)
+    {
+        ROS_INFO("TTS action failed");
+        asServeDrinkResult.result_msg = "TTS actoin failed";
+        asServeDrinkResult.success = false;
+        asServeDrink.setSucceeded(asServeDrinkResult);
+        return false;
+    }
+
+    return true;
 }
 
 bool serveDrink::executeSavePose(int nextState)
@@ -164,6 +189,7 @@ bool serveDrink::executeRelease(int nextState)
 {
     serve_drink::ReleaseGoal releaseGoal;
     acRelease.sendGoal(releaseGoal);
+    executeTTS("Here's your drink!");
     acRelease.waitForResult();
     serve_drink::ReleaseResultConstPtr releaseResult = acRelease.getResult();
 
@@ -187,6 +213,8 @@ void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& go
 {
     if( state == STATE_HIGHFIVE )
     {
+        executeTTS("Give a high five to me! I will bring you a drink.");
+
         if( !executeHighfive(SAVE_POSE) ) return;
     }
 
@@ -216,7 +244,7 @@ void serveDrink::executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& go
     }
 
     if( state == STATE_HANDOFF )
-    {
+    {        
         if( !executeRelease(STATE_HIGHFIVE) ) return;
     }
 

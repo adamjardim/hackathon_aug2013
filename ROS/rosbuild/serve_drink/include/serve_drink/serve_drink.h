@@ -9,6 +9,7 @@
 #include <serve_drink/ReleaseAction.h>
 #include <pr2_props/HighFiveAction.h>
 #include <serve_drink/savePoseAction.h>
+#include <serve_drink/TTSAction.h>
 #include <stdlib.h>
 
 //State
@@ -35,6 +36,7 @@ public:
 	actionlib::SimpleActionClient<serve_drink::ReleaseAction> acRelease;
     actionlib::SimpleActionClient<pr2_props::HighFiveAction> acHighfive;
     actionlib::SimpleActionClient<serve_drink::savePoseAction> acSavePose;
+    actionlib::SimpleActionClient<serve_drink::TTSAction> acTTS;
 
 	//Action servers
 	actionlib::SimpleActionServer<serve_drink::ServeDrinkAction> asServeDrink;
@@ -45,6 +47,8 @@ public:
 	serveDrink();
 
     void executeServeDrink(const serve_drink::ServeDrinkGoalConstPtr& goal);
+
+    bool executeTTS(std::string text);
 
     bool executeSavePose(int nextState);
 

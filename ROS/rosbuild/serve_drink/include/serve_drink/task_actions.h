@@ -12,6 +12,7 @@
 #include <serve_drink/PickupAllAction.h>
 #include <serve_drink/ReleaseAction.h>
 #include <serve_drink/savePoseAction.h>
+#include <serve_drink/TTSAction.h>
 #include <pr2_controllers_msgs/SingleJointPositionAction.h>
 #include <pr2_interactive_object_detection/UserCommandAction.h>
 #include <manipulation_msgs/GraspableObjectList.h>
@@ -61,19 +62,23 @@ public:
 	actionlib::SimpleActionClient<pr2_controllers_msgs::JointTrajectoryAction> acLeftArm;
 	actionlib::SimpleActionClient<pr2_controllers_msgs::JointTrajectoryAction> acRightArm;
 	actionlib::SimpleActionClient<pr2_controllers_msgs::Pr2GripperCommandAction> acLeftGripper;
-	actionlib::SimpleActionClient<pr2_controllers_msgs::Pr2GripperCommandAction> acRightGripper;
+    actionlib::SimpleActionClient<pr2_controllers_msgs::Pr2GripperCommandAction> acRightGripper;
 	actionlib::SimpleActionClient<pr2_interactive_object_detection::UserCommandAction> acSegment;
 	actionlib::SimpleActionClient<pr2_common_action_msgs::TuckArmsAction> acTuckArms;
 	actionlib::SimpleActionClient<pr2_object_manipulation_msgs::IMGUIAction> acIMGUI;
 
-	//Action servers
+    //Action servers
 	actionlib::SimpleActionServer<serve_drink::navigateAction> asNavigate;
 	actionlib::SimpleActionServer<serve_drink::handoffAction> asHandoff;
 	actionlib::SimpleActionServer<serve_drink::BackupAction> asBackup;
 	actionlib::SimpleActionServer<serve_drink::PickupAllAction> asPickupAll;
 	actionlib::SimpleActionServer<serve_drink::ReleaseAction> asRelease;
 	actionlib::SimpleActionServer<serve_drink::savePoseAction> asSavePose;
+    actionlib::SimpleActionServer<serve_drink::TTSAction> asTTS;
     
+    serve_drink::TTSFeedback asTTSFeedback;
+    serve_drink::TTSResult asTTSResult;
+
 	serve_drink::navigateFeedback asNavigateFeedback;
 	serve_drink::navigateResult asNavigateResult;
     
@@ -110,6 +115,8 @@ public:
     bool hasRecognition;
 
 	taskActions();
+
+    void executeTTS(const serve_drink::TTSGoalConstPtr& goal);
 
   void executeNavigate(const serve_drink::navigateGoalConstPtr& goal);
     
