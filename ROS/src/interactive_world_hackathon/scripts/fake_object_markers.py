@@ -15,6 +15,7 @@ from visualization_msgs.msg import Marker, InteractiveMarker, InteractiveMarkerC
 from interactive_world_hackathon.srv import SaveTemplate, SaveTemplateResponse
 from interactive_world_hackathon.srv import PrintTemplates, PrintTemplatesResponse
 from pr2_object_manipulation_msgs.msg import IMGUIAction, IMGUIOptions, IMGUIGoal
+from arm_navigation_msgs.msg import LinkPadding 
 import copy
 import pickle
 import actionlib
@@ -473,8 +474,10 @@ class FakeMarkerServer():
         # set the arm
         if arm_selection is 0:  
             goal.arm_name = 'right_arm'
+            prefix = 'r'
         else:
             goal.arm_name = 'left_arm'
+            prefix = 'l'
         # rotate and "gu-chunk"
         orig_z = pose.position.z
         pose.orientation.x = 0
@@ -514,7 +517,10 @@ class FakeMarkerServer():
         # set the collision info
         goal.collision_object_name = obj.collision_name
         goal.collision_support_surface_name = 'table'
-        goal.place_padding = 0.02
+        goal.place_padding = 0.0
+        goal.additional_link_padding = self.create_gripper_link_padding(prefix)
+        goal.collision_support_surface_name = 'all'
+        goal.allow_gripper_support_collision = True  
         goal.use_reactive_place = False
         # send the goal
         self.place.send_goal(goal)
@@ -538,6 +544,14 @@ class FakeMarkerServer():
             return True
         else:
             return False
+
+    def create_gripper_link_padding(self, prefix):
+        link_name_list = ['_gripper_palm_link', '_gripper_r_finger_tip_link', '_gripper_l_finger_tip_link', 
+                          '_gripper_l_finger_link', '_gripper_r_finger_link', '_wrist_roll_link']
+        pad = 0.
+        arm_link_names = [prefix + link_name for link_name in link_name_list]
+        link_padding_list = [LinkPadding(link_name, pad) for link_name in arm_link_names]
+        return link_padding_list  
 
     def create_object_info(self, obj):
         # get the pose
