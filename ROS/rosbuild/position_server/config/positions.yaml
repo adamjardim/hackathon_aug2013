@@ -11,7 +11,7 @@
   orientation: [-.002, .002, .001, .9999]
   height: .6
 - name: 'Snack Table Align'
-  position: [7.67, 4.15]
+  position: [7.80, 4.15]
   orientation: [-.002, .002, .001, .9999]
   height: .6
 - name: 'Couch Dropoff'
