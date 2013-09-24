@@ -1,0 +1,11 @@
+#goal
+string taskName
+bool saved
+bool align
+---
+#result
+bool success
+string result_msg
+---
+#feedback
+string feedback_msg

@@ -2,8 +2,8 @@
 /**
  * A task scheduler interface for August Hackthon
  *
- * @author     Jun Ki Lee <jun_ki_lee@brown.edu>
- * @copyright  2013 Brown University
+ * @author     Jun Ki Lee <jun_ki_lee@brown.edu> 
+ * @copyright  2013 Brown University & Worcester Poletechnic Institute
  * @license    BSD -- see LICENSE file
  * @version    June, 3 2013
  * @link       http://ros.org/wiki/rms_interactive_world
@@ -11,11 +11,6 @@
 
 /**
  * A static class to contain the interface generate function.
- *
- * @author     Jun Ki Lee <jun_ki_lee@brown.edu>
- * @copyright  2013 Brown University
- * @license    BSD -- see LICENSE file
- * @version    June, 3 2013
  */
 class task_scheduler
 {
@@ -101,10 +96,10 @@ class task_scheduler
   src="http://cdn.robotwebtools.org/EaselJS/0.6.0/easeljs.min.js">
 </script>
 <script type="text/javascript"
-  src="http://cdn.robotwebtools.org/ros2djs/r2/ros2d.min.js">
+  src="http://cdn.robotwebtools.org/ros2djs/r1/ros2d.min.js">
 </script>
 <script type="text/javascript"
-  src="http://cdn.robotwebtools.org/nav2djs/current/nav2d.min.js">
+  src="http://cdn.robotwebtools.org/nav2djs/r1/nav2d.min.js">
 </script>
 <script type="text/javascript"
   src="/api/robot_environments/interfaces/task_scheduler/templatemaker.js">
@@ -296,6 +291,7 @@ class task_scheduler
     }); */
     
     // setup a client to listen to table proximity
+    /*
     var tableProximityClient = new ROSLIB.Topic({
       ros : ros,
       name : '/high_level_actions/nearTable',
@@ -322,7 +318,7 @@ class task_scheduler
     // write status updates to the terminal
     hlaFeedback.subscribe(function(msg) {
       writeToTerminal('Table Alignment: ' + msg.feedback.currentStep);
-    });
+    });*/
     
     // setup a client to listen to segmentation results
     var segmentationFeedback = new ROSLIB.Topic({
@@ -424,10 +420,14 @@ class task_scheduler
                             msg.startTime + 'with a message [' +  msg.message + '].');
             break;
           case 'success': 
+            writeToTerminal('Event [' + msg.taskName + '] executed successfully. The event started from ' +
+                            msg.startTime + 'with a message [' +  msg.message + '].');
             $('#scene-blocker').hide();
             $('.event-entry').removeClass('animation');            
             break;
           case 'teleop':
+            writeToTerminal('Event [' + msg.taskName + '] tells the user to teleop to correct the failure. The task started from ' +
+                            msg.startTime + 'with a message [' +  msg.message + '].');
             $('#scene-blocker').hide();
             $('#resume_action_button').show();
             $('#show_schedule_button').hide();
@@ -461,8 +461,8 @@ class task_scheduler
     // setup a service client to add a schedule to a hackathon scheduler
     var printTemplatesClient = new ROSLIB.Service({
       ros : ros,
-      name : '/fake_marker_server/printTemplates',
-      serviceType : 'fake_marker_server/PrintTemplates'
+      name : '/fake_object_markers/print_templates',
+      serviceType : 'fake_object_markers/PrintTemplates'
     });
 
     var resumeActionClient = new ROSLIB.Service({
@@ -513,12 +513,28 @@ class task_scheduler
       });
     };
 
+    function refresh_template_list() {
+      $('select[name="templates"]').attr('disabled', 'true');      
+      printTemplatesClient.callService({}, function(result) {          
+        var html = '';
+        if (result.list) {
+          for (i in result.list) {
+            html = html + '<option value="' + result.list[i] + '">' + result.list[i] +
+                   '</option>';
+          }
+        }
+        if (html == '') {
+          $('select[name="templates"]').html('none');
+        } else {
+          $('select[name="templates"]').removeAttr('disabled');
+          $('select[name="templates"]').html(html);
+        }          
+      });
+    }
+
     $('select[name="taskType"]').change(function() {
       if ($(this).val() == 'lunch') {
-        $('select[name="templates"]').removeAttr('disabled');
-        printTemplatesClient.callService({}, function(result) {          
-          writeToTerminal(result);
-        });
+        refresh_template_list();        
       } else {
         $('select[name="templates"]').attr('disabled', 'true');
       }
@@ -549,7 +565,7 @@ class task_scheduler
         startTime: $("input[name='startTime']").val(),
         taskType: $("select[name='taskType']").val(),
         parameters: ($("select[name='taskType']").val() == 'lunch' ? 
-                     $("input[name='templates']").val() : ''),
+                     $("select[name='templates']").val() : ''),
       }});
 
       writeToTerminal("sending an event to the scheduler " +
@@ -602,8 +618,11 @@ class task_scheduler
     Task Type : <select name="taskType"> 
       <option value="medicine">medicine</option>
       <option value="lunch">lunch</option>
+      <option value="drink">drink</option>
     </select> <br><br>    
-    Templates : <select name="templates" disabled> <option>none</option> </select><br><br>
+    Templates : <select name="templates" disabled> <option>none</option> </select>
+    <a href="javascript:refresh_template_list();">refresh</a>
+    <br><br>
     <button id="addButton">Add</button>
   </div>
 </body>

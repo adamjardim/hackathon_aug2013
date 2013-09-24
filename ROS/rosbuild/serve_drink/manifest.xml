@@ -1,0 +1,30 @@
+<package>
+  <description brief="serve_drink">
+
+     serve_drink
+
+  </description>
+  <author>sui</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/serve_drink</url>
+
+  <depend package="roslib"/>
+	<depend package="roscpp"/>
+	<depend package="actionlib"/>
+	<depend package="actionlib_msgs"/>
+	<depend package="move_base_msgs"/>
+	<depend package="pr2_common_action_msgs"/>
+	<depend package="pr2_controllers_msgs"/>
+	<depend package="pr2_interactive_object_detection"/>
+	<depend package="pr2_object_manipulation_msgs"/>
+	<depend package="manipulation_msgs"/>
+	<depend package="trajectory_msgs"/>
+        <depend package="interactive_world_hackathon"/>
+        <depend package="pr2_props"/>
+
+	<depend package="position_server"/> 
+
+</package>
+
+

@@ -1,0 +1,16 @@
+<launch>		
+	<!-- Launch position server -->
+	<include file="$(find position_server)/launch/position_server.launch" />
+  
+  <node pkg="map_server" type="map_server" name="map_server" args="$(find retrieve_medicine)/map/living_room.yaml" output="screen" />
+
+	<!-- Launch robot pose publisher -->
+	<node pkg="robot_pose_publisher" type="robot_pose_publisher" name="robot_pose_publisher" output="screen" />
+	
+	<!-- Launch retrieve medicine -->
+	<node pkg="serve_drink" type="task_actions" name="task_actions" output="screen" />
+	<node pkg="serve_drink" type="serve_drink" name="serve_drink" output="screen" />
+  <!--      <node pkg="serve_drink" type="sd_client" name="sd_client" output="screen" /> -->
+
+	<node pkg="pr2_props" type="high_five" name="high_five" output="screen" />
+</launch>

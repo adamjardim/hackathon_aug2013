@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="pr2_props" type="high_five" name="highfive_actions" output="screen" />
+  <node pkg="pr2_props" type="hf_client" name="hf_client" output="screen" />
+</launch>

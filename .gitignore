@@ -12,3 +12,5 @@ node_modules
 srv_gen
 ROS/rosbuild/position_server/src/position_server
 ROS/rosbuild/retrieve_medicine/src/retrieve_medicine/
+ROS/src/CMakeLists.txt
+ROS/devel/

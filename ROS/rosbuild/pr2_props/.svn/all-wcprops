@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/penn-ros-pkgs/!svn/ver/388/pr2_props_stack/trunk/pr2_props
+END
+mainpage.dox
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/penn-ros-pkgs/!svn/ver/388/pr2_props_stack/trunk/pr2_props/mainpage.dox
+END
+CMakeLists.txt
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/penn-ros-pkgs/!svn/ver/388/pr2_props_stack/trunk/pr2_props/CMakeLists.txt
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/penn-ros-pkgs/!svn/ver/388/pr2_props_stack/trunk/pr2_props/Makefile
+END
+manifest.xml
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/penn-ros-pkgs/!svn/ver/388/pr2_props_stack/trunk/pr2_props/manifest.xml
+END

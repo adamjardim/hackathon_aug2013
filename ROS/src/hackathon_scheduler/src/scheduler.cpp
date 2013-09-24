@@ -17,6 +17,7 @@
 
 #include <interactive_world_hackathon/LoadAction.h>
 #include <retrieve_medicine/RetrieveMedicineAction.h>
+#include <serve_drink/ServeDrinkAction.h>
 
 #include <vector>
 #include <string.h>
@@ -27,13 +28,15 @@ ros::Publisher* taskStatusPublisher;
 std::string taskName="";
 std::string startTime;
 
+bool drink_needs_teleop=false;
+bool should_restart_drink=false;
 bool medicine_needs_teleop=false;
 bool should_restart_medicine=false;
 
 //get the number of seconds since midnight from an hh:mm time string
 long int secondsFromStringTime(std::string time) {
   long int hours,minutes;
-  sscanf(time.c_str(),"%ld:%ld",&hours,&minutes);
+  sscanf(time.c_str(),"%02ld:%02ld",&hours,&minutes);
   return hours*3600+minutes*60;
 }
 
@@ -45,7 +48,7 @@ std::string getCurrentStringTime() {
   time (&rawtime);
   timeinfo = localtime (&rawtime);
   char buf[5];
-  sprintf(buf,"%2d:%2d",timeinfo->tm_hour,timeinfo->tm_min);
+  sprintf(buf,"%2d:%02d",timeinfo->tm_hour,timeinfo->tm_min);
   return std::string(buf);
 }
 
@@ -339,6 +342,95 @@ void get_medicine() {
 }
 
 //////////end medicine task
+
+//////////drink task
+
+// Called once when the goal completes
+void drinkActionDoneCb(const actionlib::SimpleClientGoalState& state,
+            const serve_drink::ServeDrinkResultConstPtr& result)
+{
+  ROS_INFO("Retrieve Drink Action Finished with status '%s'",result->result_msg.c_str());
+
+  hackathon_scheduler::TaskStatus status;
+  status.taskName=taskName;
+  status.startTime=startTime;
+  status.message=result->result_msg;
+
+  if (state==actionlib::SimpleClientGoalState::SUCCEEDED) {
+    //determine whether we need teleop
+    if (result->success) {
+      status.status="success";
+      drink_needs_teleop=false;
+      should_restart_drink=false;
+    }
+    else {
+      status.status="teleop";
+      drink_needs_teleop=true;
+    }
+    taskStatusPublisher->publish(status);
+  }
+  else {
+    status.status="failure";
+    taskStatusPublisher->publish(status);
+  }
+}
+
+// Called once when the goal becomes active
+void drinkActionActiveCb()
+{
+  drink_needs_teleop=false;
+  ROS_INFO("Drink action just went active");
+  hackathon_scheduler::TaskStatus status;
+  status.taskName=taskName;
+  status.startTime=startTime;
+  status.status="executing";
+  status.message="starting to Serve Drink";
+  taskStatusPublisher->publish(status);
+}
+
+// Called every time feedback is received for the goal
+void drinkActionFeedbackCb(const serve_drink::ServeDrinkFeedbackConstPtr& feedback)
+{
+  ROS_INFO("Got drink action feedback: '%s'",feedback->feedback_msg.c_str());
+  hackathon_scheduler::TaskStatus status;
+  status.taskName=taskName;
+  status.startTime=startTime;
+  status.status="executing";
+  status.message=feedback->feedback_msg;
+  taskStatusPublisher->publish(status);
+}
+
+void get_drink() {
+  ROS_INFO("Running drink task");
+  //run the drink task
+  actionlib::SimpleActionClient<serve_drink::ServeDrinkAction> client("serve_drink_action", true); // true -> don't need ros::spin()
+  client.waitForServer();
+  serve_drink::ServeDrinkGoal goal;
+  client.sendGoal(goal, &drinkActionDoneCb,&drinkActionActiveCb,&drinkActionFeedbackCb);
+  //wait until success or failure
+  client.waitForResult();
+  //see if drink task failed and we need to do teleop
+  if (drink_needs_teleop) {
+    should_restart_drink=false;
+    ros::Rate rate(5);
+    //spin until you receive a resume drink message/servicecall, then restart get_drink   
+    while (!should_restart_drink) {
+      ros::spinOnce();
+      rate.sleep();
+    }
+    drink_needs_teleop=false;
+    get_drink();
+  }
+
+  //if success, finish
+  drink_needs_teleop=false;
+  should_restart_drink=false;
+
+  ROS_INFO("Drink task finished");
+}
+
+//////////end drink task
+
 //////////lunch task
 void lunchActionDoneCb(const actionlib::SimpleClientGoalState& state,
             const interactive_world_hackathon::LoadResultConstPtr& result)
@@ -406,6 +498,9 @@ void executeTask(hackathon_scheduler::Event task) {
   else if (strstr(task.taskType.c_str(),"lunch")) {
     get_lunch(task.parameters);
   }
+  else if (strstr(task.taskType.c_str(),"drink")) {
+    get_drink();
+  }
   else if (strstr(task.taskType.c_str(),"dummytask")) {
     int c;
     if (!sscanf(task.parameters.c_str(),"%d",&c)) c=5;
@@ -440,15 +535,17 @@ int main(int argc, char **argv)
   {
     loop_rate.sleep();
     ros::spinOnce();
-    check++;
-    //TODO: Replace this with something that checks all minutes since the last-checked minute
-    //once a minute, check if a task is scheduled to start this minute
+    check++;    
     if (check>=600) {
-     ROS_INFO("A minute has passed. Checking for scheduled tasks at time %s",getCurrentStringTime().c_str());
-     if (schedule.size()>0 && secondsFromStringTime(getCurrentStringTime()) == secondsFromStringTime(schedule.front().startTime)) {
-       ROS_INFO("Found task %s of type %s! Attempting to execute",schedule.front().taskName.c_str(),schedule.front().taskType.c_str());
-       executeTask(schedule.front());
-     }
+     ROS_INFO("A minute has passed. Checking for scheduled tasks at time %s",getCurrentStringTime().c_str());     
+     for (std::vector<hackathon_scheduler::Event>::iterator it = schedule.begin(); it != schedule.end(); it++)
+     {
+       if (secondsFromStringTime(getCurrentStringTime()) == secondsFromStringTime(it->startTime)) {
+         ROS_INFO("Found task %s of type %s! Attempting to execute",it->taskName.c_str(),it->taskType.c_str());
+         executeTask(*it);
+         break;
+       }
+     }     
      check=0;
     }
   }
