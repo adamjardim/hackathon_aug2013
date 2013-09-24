@@ -1,30 +1,30 @@
 - name: 'Medicine Nav'
-  position: [7.22, 3.29]
-  orientation: [-.002, .002, .001, .9999]
+  position: [6.66, 2.27]
+  orientation: [0.0, 0.0, 0.0, 1.0]
   height: .6
 - name: 'Medicine Table Align'
-  position: [7.75, 3.31]
-  orientation: [-.002, .002, .001, .9999]
+  position: [7.28, 2.29]
+  orientation: [0.0, 0.0, 0.0, 1.0]
   height: .6
 - name: 'Snack Nav'
-  position: [7.19, 4.15]
-  orientation: [-.002, .002, .001, .9999]
+  position: [6.70, 3.11]
+  orientation: [0.0, 0.0, 0.0, 1.0]
   height: .6
 - name: 'Snack Table Align'
-  position: [7.72, 4.15]
+  position: [7.27, 3.14]
   orientation: [-.002, .002, .001, .9999]
   height: .6
 - name: 'Couch Dropoff'
-  position: [4.40, 2.72]
-  orientation: [-.002, .002, .9948, -.101]
+  position: [2.86, 2.25]
+  orientation: [-.008, -.001, -.857, .515]
   height: 0.0
 - name: 'Dining Table Nav'
-  position: [5.16, 2.55]
-  orientation: [-.0049, -.0011, .708, .706]
+  position: [4.59, 3.17]
+  orientation: [-.0028, -.0026, -.714, .700]
   height: .3
 - name: 'Dining Table Table Align'
-  position: [5.15, 2.83]
-  orientation: [-.0049, -.0011, .708, .706]
+  position: [4.58, 2.55]
+  orientation: [-.0028, -.0026, -.714, .700]
   height: .3
 - name: 'Stage Front'
   position: [6.99926543274, 1.68946587262]
